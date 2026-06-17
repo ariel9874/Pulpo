@@ -3,6 +3,11 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { backend } from "./backend";
 
+/** Topic de ntfy.sh del usuario (push dev). Coincide con el del trigger en Postgres. */
+export function ntfyTopicFor(userId: string): string {
+  return `batuta-${userId.replace(/-/g, "")}`;
+}
+
 function currentPlatform(): DevicePlatform {
   if (Platform.OS === "ios") return "ios";
   if (Platform.OS === "android") return "android";

@@ -2,6 +2,7 @@ import { isMachineOnline, type Machine, type Session } from "@batuta/protocol";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { backend } from "../lib/backend";
+import { ntfyTopicFor } from "../lib/push";
 import { upsertSession } from "../lib/sessions";
 import { NewTaskModal } from "./NewTaskModal";
 
@@ -17,10 +18,12 @@ const STATUS_LABEL: Record<Session["status"], string> = {
 
 export function SessionsScreen({
   email,
+  userId,
   onSignOut,
   onOpen,
 }: {
   email: string;
+  userId: string;
   onSignOut: () => void;
   onOpen: (session: Session) => void;
 }) {
@@ -103,6 +106,10 @@ export function SessionsScreen({
           }}
         />
       )}
+      <Text style={styles.pushHint} numberOfLines={1}>
+        {`🔔 Push (dev): suscríbete en ntfy.sh al topic ${ntfyTopicFor(userId)}`}
+      </Text>
+
       <NewTaskModal
         visible={showNew}
         machines={Object.values(machines)}
@@ -134,6 +141,7 @@ const styles = StyleSheet.create({
   newButtonText: { color: "white", fontWeight: "700" },
   signOut: { paddingHorizontal: 12, paddingVertical: 8 },
   signOutText: { color: "#2563eb", fontWeight: "600" },
+  pushHint: { fontSize: 11, color: "#94a3b8", textAlign: "center", paddingVertical: 6 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 6, padding: 24 },
   list: { paddingHorizontal: 16, gap: 8 },
   row: {

@@ -37,6 +37,7 @@ export default function App() {
   return (
     <SessionsScreen
       email={auth.user.email ?? "—"}
+      userId={auth.user.id}
       onSignOut={() => void supabase.auth.signOut()}
       onOpen={setOpen}
     />
