@@ -14,7 +14,15 @@ const STATUS_LABEL: Record<Session["status"], string> = {
   cancelled: "Cancelada",
 };
 
-export function SessionsScreen({ email, onSignOut }: { email: string; onSignOut: () => void }) {
+export function SessionsScreen({
+  email,
+  onSignOut,
+  onOpen,
+}: {
+  email: string;
+  onSignOut: () => void;
+  onOpen: (session: Session) => void;
+}) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [machines, setMachines] = useState<Record<string, Machine>>({});
   const [loading, setLoading] = useState(true);
@@ -73,7 +81,7 @@ export function SessionsScreen({ email, onSignOut }: { email: string; onSignOut:
             const machine = machines[item.machineId];
             const online = machine ? isMachineOnline(machine) : false;
             return (
-              <View style={styles.row}>
+              <Pressable style={styles.row} onPress={() => onOpen(item)}>
                 <View style={styles.rowMain}>
                   <Text style={styles.rowTitle} numberOfLines={1}>
                     {item.title || "(sin título)"}
@@ -83,7 +91,7 @@ export function SessionsScreen({ email, onSignOut }: { email: string; onSignOut:
                   </Text>
                 </View>
                 <Text style={styles.badge}>{STATUS_LABEL[item.status]}</Text>
-              </View>
+              </Pressable>
             );
           }}
         />

@@ -1,19 +1,22 @@
-import type { Session } from "@supabase/supabase-js";
+import type { Session } from "@batuta/protocol";
+import type { Session as AuthSession } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { isSupabaseConfigured, supabase } from "./src/lib/supabase";
+import { SessionScreen } from "./src/screens/SessionScreen";
 import { SessionsScreen } from "./src/screens/SessionsScreen";
 
 export default function App() {
   const [loading, setLoading] = useState(true);
-  const [session, setSession] = useState<Session | null>(null);
+  const [auth, setAuth] = useState<AuthSession | null>(null);
+  const [open, setOpen] = useState<Session | null>(null);
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
+      setAuth(data.session);
       setLoading(false);
     });
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
+    const { data } = supabase.auth.onAuthStateChange((_event, next) => setAuth(next));
     return () => data.subscription.unsubscribe();
   }, []);
 
@@ -24,13 +27,14 @@ export default function App() {
       </View>
     );
   }
-  return session ? (
+  if (!auth) return <Login />;
+  if (open) return <SessionScreen session={open} onBack={() => setOpen(null)} />;
+  return (
     <SessionsScreen
-      email={session.user.email ?? "—"}
+      email={auth.user.email ?? "—"}
       onSignOut={() => void supabase.auth.signOut()}
+      onOpen={setOpen}
     />
-  ) : (
-    <Login />
   );
 }
 

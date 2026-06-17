@@ -172,4 +172,28 @@ describe.skipIf(!hasEnv)("SupabaseBackend (integración — requiere Supabase lo
       expect(session.id).toBe(created.id);
     },
   );
+
+  // Mecanismo de recursos generados (Etapa 15): subir a Storage y descargar.
+  it(
+    "artifacts: sube un recurso a Storage y lo descarga por URL firmada",
+    { timeout: 30_000 },
+    async () => {
+      const path = `${userId}/test-${Date.now()}.txt`;
+      const content = "hola artefacto";
+
+      const uploaded = await admin.storage
+        .from("artifacts")
+        .upload(path, Buffer.from(content), { contentType: "text/plain" });
+      expect(uploaded.error).toBeNull();
+
+      const signed = await admin.storage.from("artifacts").createSignedUrl(path, 60);
+      const url = signed.data?.signedUrl;
+      if (!url) throw new Error(signed.error?.message ?? "sin URL firmada");
+
+      const res = await fetch(url);
+      expect(await res.text()).toBe(content);
+
+      await admin.storage.from("artifacts").remove([path]);
+    },
+  );
 });
