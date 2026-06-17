@@ -1,17 +1,14 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Event } from "@batuta/protocol";
-import { createSupabaseBackend, SupabaseBackend } from "./index.js";
+import { SupabaseBackend } from "./index.js";
 
 const URL = process.env.SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const hasEnv = Boolean(URL && SERVICE_KEY);
+const ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const hasEnv = Boolean(URL && SERVICE_KEY && ANON_KEY);
 
-function adminClient(): SupabaseClient {
-  return createClient(URL!, SERVICE_KEY!, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
+const PASSWORD = "password-123";
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return Promise.race([
@@ -22,28 +19,42 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   ]);
 }
 
-// Estos tests requieren Supabase local (Docker) y se saltan si no hay entorno.
+// Requiere Supabase local (Docker). Se usa un usuario autenticado real (rol
+// authenticated) para que RLS y Realtime se comporten como en producción.
 describe.skipIf(!hasEnv)("SupabaseBackend (integración — requiere Supabase local)", () => {
   let admin: SupabaseClient;
+  let userId: string;
+  let email: string;
   let writer: SupabaseBackend;
   let reader: SupabaseBackend;
-  let userId: string;
   let machineId: string;
   let sessionId: string;
 
+  async function signedInBackend(): Promise<SupabaseBackend> {
+    const client = createClient(URL!, ANON_KEY!, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    // signIn actualiza también el token de Realtime del cliente (rol authenticated).
+    const { error } = await client.auth.signInWithPassword({ email, password: PASSWORD });
+    if (error) throw error;
+    return new SupabaseBackend(client, { userId });
+  }
+
   beforeAll(async () => {
-    admin = adminClient();
-    const email = `it-${Date.now()}@batuta.dev`;
+    admin = createClient(URL!, SERVICE_KEY!, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    email = `it-${Date.now()}-${Math.random().toString(36).slice(2)}@batuta.dev`;
     const { data, error } = await admin.auth.admin.createUser({
       email,
-      password: "password-123",
+      password: PASSWORD,
       email_confirm: true,
     });
     if (error) throw error;
     userId = data.user.id;
 
-    writer = createSupabaseBackend(URL!, SERVICE_KEY!, { userId });
-    reader = createSupabaseBackend(URL!, SERVICE_KEY!, { userId });
+    writer = await signedInBackend();
+    reader = await signedInBackend();
 
     const machine = await writer.registerMachine({ name: "PC integración" });
     machineId = machine.id;
@@ -57,7 +68,6 @@ describe.skipIf(!hasEnv)("SupabaseBackend (integración — requiere Supabase lo
   }, 30_000);
 
   afterAll(async () => {
-    // Borrar el usuario cascada-elimina machine/session/events/commands.
     if (admin && userId) await admin.auth.admin.deleteUser(userId);
   });
 
@@ -72,8 +82,8 @@ describe.skipIf(!hasEnv)("SupabaseBackend (integración — requiere Supabase lo
   });
 
   it("un cliente inserta un evento y otro lo recibe por Realtime en < 1 s", async () => {
-    // Marcador único: ignoramos cualquier evento previo de la sesión y resolvemos
-    // solo con el mensaje que insertamos en este test.
+    // Marcador único: ignoramos cualquier evento previo y resolvemos solo con el
+    // mensaje que insertamos en este test.
     const marker = `realtime-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
     let resolveReceived!: (event: Event) => void;
