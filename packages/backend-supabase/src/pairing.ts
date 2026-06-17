@@ -7,6 +7,8 @@ export interface PairingStart {
 
 export interface RunnerCredential {
   url: string;
+  /** Clave anon (pública) para el gateway; el token va como Authorization Bearer. */
+  anonKey: string;
   token: string;
   machineId: string;
   userId: string;
@@ -29,7 +31,7 @@ export class PairingClient {
 
   constructor(
     private readonly url: string,
-    anonKey: string,
+    private readonly anonKey: string,
   ) {
     this.client = createClient(url, anonKey, {
       auth: { persistSession: false, autoRefreshToken: false },
@@ -63,7 +65,13 @@ export class PairingClient {
     for (;;) {
       const res = await this.poll(start.deviceCode, start.deviceSecret);
       if (res.status === "claimed") {
-        return { url: this.url, token: res.token, machineId: res.machine_id, userId: res.user_id };
+        return {
+          url: this.url,
+          anonKey: this.anonKey,
+          token: res.token,
+          machineId: res.machine_id,
+          userId: res.user_id,
+        };
       }
       if (res.status === "expired") throw new Error("El código de emparejamiento expiró");
       if (Date.now() > deadline) throw new Error("Tiempo de espera agotado para el emparejamiento");

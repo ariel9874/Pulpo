@@ -93,6 +93,20 @@ export class SupabaseBackend implements BackendPort {
     if (error) throw error;
   }
 
+  async setMachineStatus(machineId: string, status: Machine["status"]): Promise<void> {
+    const { error } = await this.client.from("machines").update({ status }).eq("id", machineId);
+    if (error) throw error;
+  }
+
+  async listMachines(): Promise<Machine[]> {
+    const { data, error } = await this.client
+      .from("machines")
+      .select("*")
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map((r) => rowToMachine(r as Row));
+  }
+
   // --- Sesiones ---
 
   async createSession(input: CreateSessionInput): Promise<Session> {
@@ -259,19 +273,26 @@ export class SupabaseBackend implements BackendPort {
   }
 }
 
-/** Crea un `SupabaseBackend` a partir de URL + clave (crea el cliente por dentro). */
+/**
+ * Crea un `SupabaseBackend`. `key` es la clave para el gateway (anon o service).
+ * Si se pasa `accessToken` (p. ej. el JWT del runner tras el pairing), se usa como
+ * Authorization Bearer y como token de Realtime, manteniendo `key` como apikey.
+ */
 export function createSupabaseBackend(
   url: string,
   key: string,
-  options: SupabaseBackendOptions = {},
+  options: SupabaseBackendOptions & { accessToken?: string } = {},
 ): SupabaseBackend {
   const client = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
+    ...(options.accessToken
+      ? { global: { headers: { Authorization: `Bearer ${options.accessToken}` } } }
+      : {}),
   });
   // Fijar el token de Realtime: el rol del JWT determina la visibilidad de los
   // cambios (apply_rls comprueba has_column_privilege con ese rol).
-  client.realtime.setAuth(key);
-  return new SupabaseBackend(client, options);
+  client.realtime.setAuth(options.accessToken ?? key);
+  return new SupabaseBackend(client, { userId: options.userId });
 }
 
 // =====================================================================

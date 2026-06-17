@@ -68,6 +68,9 @@ importers:
         specifier: workspace:*
         version: link:../protocol
     devDependencies:
+      '@batuta/backend-memory':
+        specifier: workspace:*
+        version: link:../backend-memory
       '@supabase/supabase-js':
         specifier: ^2.48.1
         version: 2.108.2

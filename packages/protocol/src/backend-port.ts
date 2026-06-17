@@ -19,6 +19,10 @@ export interface BackendPort {
   registerMachine(input: RegisterMachineInput): Promise<Machine>;
   /** Actualiza `lastSeen` y marca la máquina online. */
   heartbeat(machineId: string): Promise<void>;
+  /** Cambia el estado de la máquina (p. ej. a offline en un apagado limpio). */
+  setMachineStatus(machineId: string, status: Machine["status"]): Promise<void>;
+  /** Lista las máquinas del usuario. */
+  listMachines(): Promise<Machine[]>;
 
   // --- Sesiones ---
   createSession(input: CreateSessionInput): Promise<Session>; // runner

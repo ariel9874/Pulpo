@@ -8,3 +8,4 @@
 
 export * from "./credentials.js";
 export * from "./pair.js";
+export * from "./daemon.js";

@@ -23,6 +23,7 @@
     "@batuta/protocol": "workspace:*"
   },
   "devDependencies": {
+    "@batuta/backend-memory": "workspace:*",
     "@supabase/supabase-js": "^2.48.1"
   }
 }

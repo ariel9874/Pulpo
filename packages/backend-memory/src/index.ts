@@ -80,6 +80,16 @@ export class MemoryBackend implements BackendPort {
     });
   }
 
+  async setMachineStatus(machineId: string, status: Machine["status"]): Promise<void> {
+    const machine = this.machines.get(machineId);
+    if (!machine) throw new Error(`Máquina desconocida: ${machineId}`);
+    this.machines.set(machineId, { ...machine, status });
+  }
+
+  async listMachines(): Promise<Machine[]> {
+    return [...this.machines.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+
   // --- Sesiones ---
 
   async createSession(input: CreateSessionInput): Promise<Session> {

@@ -12,6 +12,9 @@ export default defineConfig({
       "@batuta/backend-supabase": fileURLToPath(
         new URL("./packages/backend-supabase/src/index.ts", import.meta.url),
       ),
+      "@batuta/backend-memory": fileURLToPath(
+        new URL("./packages/backend-memory/src/index.ts", import.meta.url),
+      ),
     },
   },
   test: {
