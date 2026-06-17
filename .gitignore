@@ -5,6 +5,10 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Expo
+.expo/
+web-build/
+
 # Logs
 *.log
 npm-debug.log*

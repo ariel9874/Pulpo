@@ -2,5 +2,29 @@
   "name": "@batuta/app",
   "version": "0.0.0",
   "private": true,
-  "description": "App Expo (iOS/Android/web) — control remoto de los agentes. Se inicializa en la Etapa 13."
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "web": "expo start --web",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "export:web": "expo export --platform web",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@batuta/backend-supabase": "workspace:*",
+    "@batuta/protocol": "workspace:*",
+    "@expo/metro-runtime": "~4.0.1",
+    "@react-native-async-storage/async-storage": "1.23.1",
+    "@supabase/supabase-js": "^2.48.1",
+    "expo": "~52.0.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-native": "0.76.9",
+    "react-native-url-polyfill": "^3.0.0",
+    "react-native-web": "~0.19.13"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17"
+  }
 }

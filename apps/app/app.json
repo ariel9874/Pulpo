@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "Batuta",
+    "slug": "batuta",
+    "scheme": "batuta",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "platforms": ["ios", "android", "web"],
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    }
+  }
+}
