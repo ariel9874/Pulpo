@@ -12,3 +12,4 @@ export * from "./daemon.js";
 export * from "./agent-adapter.js";
 export * from "./agent-runner.js";
 export * from "./adapters/echo.js";
+export * from "./adapters/claude-code/index.js";

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { createSupabaseBackend } from "@batuta/backend-supabase";
+import { ClaudeCodeAdapter } from "./adapters/claude-code/index.js";
 import { EchoAdapter } from "./adapters/echo.js";
 import { AgentRunner } from "./agent-runner.js";
 import { loadCredential, defaultCredentialPath } from "./credentials.js";
@@ -29,7 +30,10 @@ async function runDaemon(): Promise<void> {
     userId: credential.userId,
   });
   const daemon = new RunnerDaemon(backend, credential.machineId);
-  const agents = new AgentRunner(backend, credential.machineId, [new EchoAdapter()]);
+  const agents = new AgentRunner(backend, credential.machineId, [
+    new EchoAdapter(),
+    new ClaudeCodeAdapter(),
+  ]);
   await daemon.start();
   await agents.start();
   console.log(`Runner activo (máquina ${credential.machineId}). Ctrl+C para salir.`);
