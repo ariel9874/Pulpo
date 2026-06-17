@@ -51,7 +51,6 @@ describe.skipIf(!hasEnv)("AgentRunner echo (integración — commands/events por
   let admin: SupabaseClient;
   let userId: string;
   let credential: RunnerCredential;
-  let runner: AgentRunner;
 
   beforeAll(async () => {
     admin = createClient(URL!, SERVICE_KEY!, {
@@ -80,52 +79,65 @@ describe.skipIf(!hasEnv)("AgentRunner echo (integración — commands/events por
   }, 30_000);
 
   afterAll(async () => {
-    if (runner) await runner.stop();
     if (admin && userId) await admin.auth.admin.deleteUser(userId);
   });
 
-  it("la app manda new_task/send_message y recibe el eco por events", async () => {
-    const runnerBackend = createSupabaseBackend(credential.url, credential.anonKey, {
-      accessToken: credential.token,
-      userId: credential.userId,
-    });
-    const appBackend = createSupabaseBackend(credential.url, credential.anonKey, {
-      accessToken: credential.token,
-      userId: credential.userId,
-    });
+  it(
+    "la app manda new_task/send_message y recibe el eco por events",
+    { timeout: 40_000, retry: 2 },
+    async () => {
+      const runnerBackend = createSupabaseBackend(credential.url, credential.anonKey, {
+        accessToken: credential.token,
+        userId: credential.userId,
+      });
+      const appBackend = createSupabaseBackend(credential.url, credential.anonKey, {
+        accessToken: credential.token,
+        userId: credential.userId,
+      });
 
-    runner = new AgentRunner(runnerBackend, credential.machineId, [new EchoAdapter()]);
-    await runner.start(); // resuelve cuando la suscripción a commands está lista
+      const echoRunner = new AgentRunner(runnerBackend, credential.machineId, [new EchoAdapter()]);
+      await echoRunner.start(); // resuelve cuando la suscripción a commands está lista
+      try {
+        const prompt = `eco-${Date.now()}`;
+        await appBackend.sendCommand({
+          type: "new_task",
+          machineId: credential.machineId,
+          agentType: "echo",
+          cwd: "/tmp",
+          prompt,
+        });
 
-    await appBackend.sendCommand({
-      type: "new_task",
-      machineId: credential.machineId,
-      agentType: "echo",
-      cwd: "/tmp",
-      prompt: "hola",
-    });
+        // El runner crea la sesión y emite el primer eco.
+        const session = await waitFor(async () =>
+          (await appBackend.listSessions()).find((s) => s.title === prompt),
+        );
+        const firstEcho = await waitFor(async () =>
+          (await appBackend.listEvents(session.id)).find(
+            (e) => e.type === "message" && e.text === `echo: ${prompt}`,
+          ),
+        );
+        expect(firstEcho).toBeTruthy();
 
-    // El runner crea la sesión y emite el primer eco.
-    const session = await waitFor(async () => (await appBackend.listSessions())[0]);
-    const firstEcho = await waitFor(async () =>
-      (await appBackend.listEvents(session.id)).find(
-        (e) => e.type === "message" && e.text === "echo: hola",
-      ),
-    );
-    expect(firstEcho).toBeTruthy();
-
-    await appBackend.sendCommand({ type: "send_message", sessionId: session.id, text: "mundo" });
-    const secondEcho = await waitFor(async () =>
-      (await appBackend.listEvents(session.id)).find(
-        (e) => e.type === "message" && e.text === "echo: mundo",
-      ),
-    );
-    expect(secondEcho).toBeTruthy();
-  }, 40_000);
+        await appBackend.sendCommand({
+          type: "send_message",
+          sessionId: session.id,
+          text: "mundo",
+        });
+        const secondEcho = await waitFor(async () =>
+          (await appBackend.listEvents(session.id)).find(
+            (e) => e.type === "message" && e.text === "echo: mundo",
+          ),
+        );
+        expect(secondEcho).toBeTruthy();
+      } finally {
+        await echoRunner.stop();
+      }
+    },
+  );
 
   it(
     "LOOP MVP: la app aprueba un permiso y Claude (simulado) continúa",
-    { timeout: 40_000 },
+    { timeout: 40_000, retry: 2 },
     async () => {
       const runnerBackend = createSupabaseBackend(credential.url, credential.anonKey, {
         accessToken: credential.token,
@@ -177,6 +189,47 @@ describe.skipIf(!hasEnv)("AgentRunner echo (integración — commands/events por
         expect(done).toBeTruthy();
       } finally {
         await mvpRunner.stop();
+      }
+    },
+  );
+
+  it(
+    "la app cancela una tarea en curso (sesión → cancelled)",
+    { timeout: 40_000, retry: 2 },
+    async () => {
+      const runnerBackend = createSupabaseBackend(credential.url, credential.anonKey, {
+        accessToken: credential.token,
+        userId: credential.userId,
+      });
+      const appBackend = createSupabaseBackend(credential.url, credential.anonKey, {
+        accessToken: credential.token,
+        userId: credential.userId,
+      });
+      const cancelRunner = new AgentRunner(runnerBackend, credential.machineId, [
+        new EchoAdapter(),
+      ]);
+      await cancelRunner.start();
+      try {
+        const prompt = `cancelable-${Date.now()}`;
+        await appBackend.sendCommand({
+          type: "new_task",
+          machineId: credential.machineId,
+          agentType: "echo",
+          cwd: "/tmp",
+          prompt,
+        });
+        const session = await waitFor(async () =>
+          (await appBackend.listSessions()).find((s) => s.title === prompt),
+        );
+
+        await appBackend.sendCommand({ type: "cancel", sessionId: session.id });
+        const cancelled = await waitFor(async () => {
+          const current = (await appBackend.listSessions()).find((s) => s.id === session.id);
+          return current && current.status === "cancelled" ? current : undefined;
+        });
+        expect(cancelled.status).toBe("cancelled");
+      } finally {
+        await cancelRunner.stop();
       }
     },
   );

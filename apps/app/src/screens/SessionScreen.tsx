@@ -8,6 +8,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { resolveArtifactUrl } from "../lib/artifacts";
@@ -43,6 +44,8 @@ export function SessionScreen({ session, onBack }: { session: Session; onBack: (
     };
   }, [session.id]);
 
+  const [draft, setDraft] = useState("");
+
   const decide = (permissionId: string, decision: "approve" | "reject") => {
     setPending((prev) => {
       const next = new Set(prev);
@@ -51,6 +54,16 @@ export function SessionScreen({ session, onBack }: { session: Session; onBack: (
     });
     void backend.sendCommand({ type: decision, sessionId: session.id, permissionId });
   };
+
+  const send = async (): Promise<void> => {
+    const text = draft.trim();
+    if (!text) return;
+    setDraft("");
+    await backend.sendCommand({ type: "send_message", sessionId: session.id, text });
+  };
+
+  const cancelTask = (): void =>
+    void backend.sendCommand({ type: "cancel", sessionId: session.id });
 
   return (
     <View style={styles.screen}>
@@ -68,6 +81,7 @@ export function SessionScreen({ session, onBack }: { session: Session; onBack: (
         </View>
       ) : (
         <FlatList
+          style={styles.flex}
           data={events}
           keyExtractor={(e) => e.id}
           extraData={pending}
@@ -86,6 +100,26 @@ export function SessionScreen({ session, onBack }: { session: Session; onBack: (
           }
         />
       )}
+
+      <View style={styles.footer}>
+        <Pressable onPress={cancelTask} style={styles.cancelTask}>
+          <Text style={styles.cancelTaskText}>Cancelar</Text>
+        </Pressable>
+        <TextInput
+          style={styles.composer}
+          value={draft}
+          onChangeText={setDraft}
+          placeholder="Mensaje a Claude…"
+          onSubmitEditing={() => void send()}
+        />
+        <Pressable
+          onPress={() => void send()}
+          disabled={!draft.trim()}
+          style={[styles.sendBtn, !draft.trim() && styles.sendDisabled]}
+        >
+          <Text style={styles.sendText}>Enviar</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -241,4 +275,32 @@ const styles = StyleSheet.create({
   approve: { backgroundColor: "#16a34a" },
   reject: { backgroundColor: "#dc2626" },
   btnText: { color: "white", fontWeight: "700" },
+  flex: { flex: 1 },
+  footer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#e2e8f0",
+  },
+  cancelTask: { paddingHorizontal: 8, paddingVertical: 8 },
+  cancelTaskText: { color: "#dc2626", fontWeight: "600" },
+  composer: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  sendBtn: {
+    backgroundColor: "#2563eb",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
+  },
+  sendDisabled: { opacity: 0.5 },
+  sendText: { color: "white", fontWeight: "700" },
 });

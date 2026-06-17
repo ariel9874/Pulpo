@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { backend } from "../lib/backend";
 import { upsertSession } from "../lib/sessions";
+import { NewTaskModal } from "./NewTaskModal";
 
 const STATUS_LABEL: Record<Session["status"], string> = {
   starting: "Arrancando",
@@ -26,6 +27,7 @@ export function SessionsScreen({
   const [sessions, setSessions] = useState<Session[]>([]);
   const [machines, setMachines] = useState<Record<string, Machine>>({});
   const [loading, setLoading] = useState(true);
+  const [showNew, setShowNew] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -58,9 +60,14 @@ export function SessionsScreen({
             {email}
           </Text>
         </View>
-        <Pressable onPress={onSignOut} style={styles.signOut}>
-          <Text style={styles.signOutText}>Salir</Text>
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable onPress={() => setShowNew(true)} style={styles.newButton}>
+            <Text style={styles.newButtonText}>+ Nueva</Text>
+          </Pressable>
+          <Pressable onPress={onSignOut} style={styles.signOut}>
+            <Text style={styles.signOutText}>Salir</Text>
+          </Pressable>
+        </View>
       </View>
 
       {loading ? (
@@ -70,7 +77,7 @@ export function SessionsScreen({
       ) : sessions.length === 0 ? (
         <View style={styles.center}>
           <Text style={styles.muted}>No hay sesiones todavía.</Text>
-          <Text style={styles.muted}>Lanza una desde el runner y aparecerá aquí.</Text>
+          <Text style={styles.muted}>Pulsa «+ Nueva» para lanzar una tarea.</Text>
         </View>
       ) : (
         <FlatList
@@ -96,6 +103,11 @@ export function SessionsScreen({
           }}
         />
       )}
+      <NewTaskModal
+        visible={showNew}
+        machines={Object.values(machines)}
+        onClose={() => setShowNew(false)}
+      />
     </View>
   );
 }
@@ -112,6 +124,14 @@ const styles = StyleSheet.create({
   headerText: { flexShrink: 1 },
   title: { fontSize: 24, fontWeight: "700" },
   muted: { fontSize: 13, color: "#666" },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 4 },
+  newButton: {
+    backgroundColor: "#2563eb",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  newButtonText: { color: "white", fontWeight: "700" },
   signOut: { paddingHorizontal: 12, paddingVertical: 8 },
   signOutText: { color: "#2563eb", fontWeight: "600" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 6, padding: 24 },
