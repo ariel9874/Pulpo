@@ -2,10 +2,13 @@
  * @batuta/runner — el demonio local que lanza los agentes y traduce su
  * actividad al protocolo.
  *
- * Etapa 7: emparejamiento (pairing) — bootstrap mínimo que obtiene la credencial.
- * El demonio completo (heartbeat) y los adaptadores llegan en las etapas 8-12.
+ * Etapas 7-9: emparejamiento, heartbeat y cableado de agentes (contrato
+ * AgentAdapter + adaptador echo). Los adaptadores reales llegan en 10-12.
  */
 
 export * from "./credentials.js";
 export * from "./pair.js";
 export * from "./daemon.js";
+export * from "./agent-adapter.js";
+export * from "./agent-runner.js";
+export * from "./adapters/echo.js";

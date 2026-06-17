@@ -29,24 +29,38 @@ export interface BackendPort {
   updateSession(id: string, patch: UpdateSessionInput): Promise<Session>; // runner
   listSessions(): Promise<Session[]>; // app
   /** Cambios en sesiones (creación/estado) en vivo. */
-  subscribeSessions(handler: (session: Session) => void): Unsubscribe; // app
+  subscribeSessions(
+    handler: (session: Session) => void,
+    onStatus?: SubscriptionStatusHandler,
+  ): Unsubscribe; // app
 
   // --- Eventos (actividad del agente: runner escribe, app lee) ---
   appendEvent(input: AppendEventInput): Promise<Event>; // runner
   listEvents(sessionId: string): Promise<Event[]>; // app
   /** Eventos nuevos de una sesión en vivo (no reproduce el histórico). */
-  subscribeEvents(sessionId: string, handler: (event: Event) => void): Unsubscribe; // app
+  subscribeEvents(
+    sessionId: string,
+    handler: (event: Event) => void,
+    onStatus?: SubscriptionStatusHandler,
+  ): Unsubscribe; // app
 
   // --- Comandos (órdenes de la app: app escribe, runner lee) ---
   sendCommand(input: SendCommandInput): Promise<Command>; // app
   /** Comandos dirigidos a las sesiones/máquina de este runner, en vivo. */
-  subscribeCommands(machineId: string, handler: (command: Command) => void): Unsubscribe; // runner
+  subscribeCommands(
+    machineId: string,
+    handler: (command: Command) => void,
+    onStatus?: SubscriptionStatusHandler,
+  ): Unsubscribe; // runner
   /** Marca un comando como procesado (idempotencia: no re-ejecutar al reconectar). */
   markCommandConsumed(commandId: string): Promise<void>; // runner
 }
 
 /** Cancela una suscripción. */
 export type Unsubscribe = () => void;
+
+/** Estado de una suscripción en vivo (p. ej. `"SUBSCRIBED"` cuando ya está lista). */
+export type SubscriptionStatusHandler = (status: string) => void;
 
 /** `Omit` que respeta las uniones discriminadas (las distribuye variante a variante). */
 export type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;

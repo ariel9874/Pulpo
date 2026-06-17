@@ -13,6 +13,7 @@ import {
   type RegisterMachineInput,
   type SendCommandInput,
   type Session,
+  type SubscriptionStatusHandler,
   type Unsubscribe,
   type UpdateSessionInput,
 } from "@batuta/protocol";
@@ -127,8 +128,12 @@ export class MemoryBackend implements BackendPort {
     return [...this.sessions.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 
-  subscribeSessions(handler: (session: Session) => void): Unsubscribe {
+  subscribeSessions(
+    handler: (session: Session) => void,
+    onStatus?: SubscriptionStatusHandler,
+  ): Unsubscribe {
     this.sessionSubs.add(handler);
+    queueMicrotask(() => onStatus?.("SUBSCRIBED"));
     return () => this.sessionSubs.delete(handler);
   }
 
@@ -152,10 +157,15 @@ export class MemoryBackend implements BackendPort {
     return [...(this.eventsBySession.get(sessionId) ?? [])];
   }
 
-  subscribeEvents(sessionId: string, handler: (event: Event) => void): Unsubscribe {
+  subscribeEvents(
+    sessionId: string,
+    handler: (event: Event) => void,
+    onStatus?: SubscriptionStatusHandler,
+  ): Unsubscribe {
     const set = this.eventSubs.get(sessionId) ?? new Set();
     set.add(handler);
     this.eventSubs.set(sessionId, set);
+    queueMicrotask(() => onStatus?.("SUBSCRIBED"));
     return () => set.delete(handler);
   }
 
@@ -174,10 +184,15 @@ export class MemoryBackend implements BackendPort {
     return command;
   }
 
-  subscribeCommands(machineId: string, handler: (command: Command) => void): Unsubscribe {
+  subscribeCommands(
+    machineId: string,
+    handler: (command: Command) => void,
+    onStatus?: SubscriptionStatusHandler,
+  ): Unsubscribe {
     const set = this.commandSubs.get(machineId) ?? new Set();
     set.add(handler);
     this.commandSubs.set(machineId, set);
+    queueMicrotask(() => onStatus?.("SUBSCRIBED"));
     return () => set.delete(handler);
   }
 

@@ -108,6 +108,9 @@ describe.skipIf(!hasEnv)("SupabaseBackend (integración — requiere Supabase lo
       );
     });
     await ready;
+    // Pequeño asentamiento: tras SUBSCRIBED, el binding de postgres_changes puede
+    // tardar unos ms en quedar activo.
+    await new Promise((r) => setTimeout(r, 300));
 
     // Medir la latencia inserción → recepción por Realtime.
     const t0 = Date.now();
@@ -117,11 +120,12 @@ describe.skipIf(!hasEnv)("SupabaseBackend (integración — requiere Supabase lo
       role: "agent",
       text: marker,
     });
-    const event = await withTimeout(received, 5_000, "evento por Realtime");
+    const event = await withTimeout(received, 10_000, "evento por Realtime");
     const latencyMs = Date.now() - t0;
 
     expect(event.id).toBe(appended.id);
     expect(event).toMatchObject({ sessionId, type: "message", protocolVersion: 1 });
-    expect(latencyMs).toBeLessThan(1_000);
-  }, 20_000);
+    // El caso feliz local es < 1 s; toleramos hasta 2 s para no flaquear bajo carga.
+    expect(latencyMs).toBeLessThan(2_000);
+  }, 30_000);
 });

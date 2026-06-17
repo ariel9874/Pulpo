@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import { createSupabaseBackend } from "@batuta/backend-supabase";
+import { EchoAdapter } from "./adapters/echo.js";
+import { AgentRunner } from "./agent-runner.js";
 import { loadCredential, defaultCredentialPath } from "./credentials.js";
 import { RunnerDaemon } from "./daemon.js";
 import { pair } from "./pair.js";
@@ -27,7 +29,9 @@ async function runDaemon(): Promise<void> {
     userId: credential.userId,
   });
   const daemon = new RunnerDaemon(backend, credential.machineId);
+  const agents = new AgentRunner(backend, credential.machineId, [new EchoAdapter()]);
   await daemon.start();
+  await agents.start();
   console.log(`Runner activo (máquina ${credential.machineId}). Ctrl+C para salir.`);
 
   let stopping = false;
@@ -35,6 +39,7 @@ async function runDaemon(): Promise<void> {
     if (stopping) return;
     stopping = true;
     console.log("\nApagando…");
+    await agents.stop();
     await daemon.stop();
     process.exit(0);
   };
