@@ -6,8 +6,29 @@ import {
   type RunnerCredential,
 } from "@batuta/backend-supabase";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { ClaudeCodeAdapter } from "./adapters/claude-code/index.js";
+import type {
+  ClaudeMessage,
+  ClaudeRunOptions,
+  ClaudeTransport,
+} from "./adapters/claude-code/transport.js";
 import { EchoAdapter } from "./adapters/echo.js";
 import { AgentRunner } from "./agent-runner.js";
+
+/** Transporte simulado que pide permiso y reacciona a la decisión (sin tokens). */
+class PermissionMock implements ClaudeTransport {
+  async *run(options: ClaudeRunOptions): AsyncIterable<ClaudeMessage> {
+    const decision = await options.requestPermission({
+      tool: "Edit",
+      title: "Editar a.ts",
+      diff: "- a\n+ b",
+    });
+    yield decision === "allow"
+      ? { kind: "text", text: "editado" }
+      : { kind: "text", text: "denegado" };
+    yield { kind: "result", outcome: "completed" };
+  }
+}
 
 const URL = process.env.SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -101,4 +122,62 @@ describe.skipIf(!hasEnv)("AgentRunner echo (integración — commands/events por
     );
     expect(secondEcho).toBeTruthy();
   }, 40_000);
+
+  it(
+    "LOOP MVP: la app aprueba un permiso y Claude (simulado) continúa",
+    { timeout: 40_000 },
+    async () => {
+      const runnerBackend = createSupabaseBackend(credential.url, credential.anonKey, {
+        accessToken: credential.token,
+        userId: credential.userId,
+      });
+      const appBackend = createSupabaseBackend(credential.url, credential.anonKey, {
+        accessToken: credential.token,
+        userId: credential.userId,
+      });
+      const mvpRunner = new AgentRunner(runnerBackend, credential.machineId, [
+        new ClaudeCodeAdapter(() => new PermissionMock()),
+      ]);
+      await mvpRunner.start();
+      try {
+        await appBackend.sendCommand({
+          type: "new_task",
+          machineId: credential.machineId,
+          agentType: "claude-code",
+          cwd: "/tmp",
+          prompt: "edita",
+        });
+
+        const session = await waitFor(async () =>
+          (await appBackend.listSessions()).find((s) => s.agentType === "claude-code"),
+        );
+        const perm = await waitFor(async () =>
+          (await appBackend.listEvents(session.id)).find((e) => e.type === "permission_required"),
+        );
+        if (perm.type !== "permission_required") throw new Error("evento inesperado");
+
+        // Aún bloqueado: no hay "editado" todavía.
+        expect(
+          (await appBackend.listEvents(session.id)).some(
+            (e) => e.type === "message" && e.text === "editado",
+          ),
+        ).toBe(false);
+
+        // La app aprueba → el runner resuelve → Claude continúa.
+        await appBackend.sendCommand({
+          type: "approve",
+          sessionId: session.id,
+          permissionId: perm.permissionId,
+        });
+        const done = await waitFor(async () =>
+          (await appBackend.listEvents(session.id)).find(
+            (e) => e.type === "message" && e.text === "editado",
+          ),
+        );
+        expect(done).toBeTruthy();
+      } finally {
+        await mvpRunner.stop();
+      }
+    },
+  );
 });

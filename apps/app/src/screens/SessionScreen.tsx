@@ -16,23 +16,41 @@ import { appendEvents } from "../lib/events";
 
 export function SessionScreen({ session, onBack }: { session: Session; onBack: () => void }) {
   const [events, setEvents] = useState<Event[]>([]);
+  const [pending, setPending] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
-    void backend.listEvents(session.id).then((list) => {
+    void (async () => {
+      const [list, perms] = await Promise.all([
+        backend.listEvents(session.id),
+        backend.listPendingPermissions(session.id),
+      ]);
       if (!active) return;
       setEvents(list);
+      setPending(new Set(perms.map((p) => p.id)));
       setLoading(false);
+    })();
+    const unsubscribe = backend.subscribeEvents(session.id, (event) => {
+      setEvents((prev) => appendEvents(prev, event));
+      if (event.type === "permission_required") {
+        setPending((prev) => new Set(prev).add(event.permissionId));
+      }
     });
-    const unsubscribe = backend.subscribeEvents(session.id, (event) =>
-      setEvents((prev) => appendEvents(prev, event)),
-    );
     return () => {
       active = false;
       unsubscribe();
     };
   }, [session.id]);
+
+  const decide = (permissionId: string, decision: "approve" | "reject") => {
+    setPending((prev) => {
+      const next = new Set(prev);
+      next.delete(permissionId);
+      return next;
+    });
+    void backend.sendCommand({ type: decision, sessionId: session.id, permissionId });
+  };
 
   return (
     <View style={styles.screen}>
@@ -52,9 +70,20 @@ export function SessionScreen({ session, onBack }: { session: Session; onBack: (
         <FlatList
           data={events}
           keyExtractor={(e) => e.id}
+          extraData={pending}
           contentContainerStyle={styles.list}
           ListEmptyComponent={<Text style={styles.muted}>Sin actividad todavía.</Text>}
-          renderItem={({ item }) => <EventRow event={item} />}
+          renderItem={({ item }) =>
+            item.type === "permission_required" ? (
+              <PermissionView
+                event={item}
+                isPending={pending.has(item.permissionId)}
+                onDecide={decide}
+              />
+            ) : (
+              <EventRow event={item} />
+            )
+          }
         />
       )}
     </View>
@@ -113,6 +142,42 @@ function ArtifactView({ artifact }: { artifact: Artifact }) {
   );
 }
 
+function PermissionView({
+  event,
+  isPending,
+  onDecide,
+}: {
+  event: Extract<Event, { type: "permission_required" }>;
+  isPending: boolean;
+  onDecide: (permissionId: string, decision: "approve" | "reject") => void;
+}) {
+  const diff = event.diff?.type === "inline" ? event.diff.content : null;
+  return (
+    <View style={styles.permission}>
+      <Text style={styles.permTitle}>{`🔐 ${event.summary || event.tool}`}</Text>
+      {diff ? <Text style={styles.diff}>{diff}</Text> : null}
+      {isPending ? (
+        <View style={styles.permActions}>
+          <Pressable
+            style={[styles.btn, styles.approve]}
+            onPress={() => onDecide(event.permissionId, "approve")}
+          >
+            <Text style={styles.btnText}>Aprobar</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.btn, styles.reject]}
+            onPress={() => onDecide(event.permissionId, "reject")}
+          >
+            <Text style={styles.btnText}>Rechazar</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <Text style={styles.muted}>decisión registrada</Text>
+      )}
+    </View>
+  );
+}
+
 function Line({ children, muted, warn }: { children: ReactNode; muted?: boolean; warn?: boolean }) {
   return (
     <Text style={[styles.line, muted ? styles.muted : null, warn ? styles.warn : null]}>
@@ -154,4 +219,26 @@ const styles = StyleSheet.create({
   cardTitle: { fontWeight: "600" },
   image: { width: "100%", height: 220, backgroundColor: "#f8fafc", borderRadius: 8 },
   link: { color: "#2563eb", fontWeight: "600" },
+  permission: {
+    borderWidth: 1,
+    borderColor: "#fbbf24",
+    backgroundColor: "#fffbeb",
+    borderRadius: 10,
+    padding: 12,
+    gap: 8,
+  },
+  permTitle: { fontWeight: "700" },
+  diff: {
+    fontFamily: "monospace",
+    fontSize: 12,
+    backgroundColor: "#0f172a",
+    color: "#e2e8f0",
+    padding: 10,
+    borderRadius: 8,
+  },
+  permActions: { flexDirection: "row", gap: 10 },
+  btn: { flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: 8 },
+  approve: { backgroundColor: "#16a34a" },
+  reject: { backgroundColor: "#dc2626" },
+  btnText: { color: "white", fontWeight: "700" },
 });
