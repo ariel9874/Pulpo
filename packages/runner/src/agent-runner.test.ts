@@ -88,4 +88,30 @@ describe("AgentRunner + EchoAdapter (cableado con MemoryBackend)", () => {
 
     await runner.stop();
   });
+
+  it("procesa comandos pendientes al arrancar (catch-up tras reconexión)", async () => {
+    const backend = new MemoryBackend();
+    const machine = await backend.registerMachine({ name: "PC" });
+
+    // Comando enviado ANTES de que el runner se suscriba (simula un corte de red).
+    await backend.sendCommand({
+      type: "new_task",
+      machineId: machine.id,
+      agentType: "echo",
+      cwd: "/x",
+      prompt: "hola",
+    });
+
+    const runner = new AgentRunner(backend, machine.id, [new EchoAdapter()]);
+    await runner.start(); // el catch-up procesa el comando pendiente
+
+    const session = await waitFor(async () => (await backend.listSessions())[0]);
+    await waitFor(async () =>
+      (await backend.listEvents(session.id)).find(
+        (e) => e.type === "message" && e.text === "echo: hola",
+      ),
+    );
+
+    await runner.stop();
+  });
 });

@@ -1,6 +1,8 @@
+import type { Payload } from "./common.js";
 import type { Command } from "./commands.js";
 import type { Event } from "./events.js";
 import type { Machine } from "./machine.js";
+import type { Permission, PermissionStatus } from "./permission.js";
 import type { Session, SessionStatus } from "./session.js";
 
 /**
@@ -54,6 +56,24 @@ export interface BackendPort {
   ): Unsubscribe; // runner
   /** Marca un comando como procesado (idempotencia: no re-ejecutar al reconectar). */
   markCommandConsumed(commandId: string): Promise<void>; // runner
+  /** Comandos sin consumir de esta máquina (catch-up al (re)suscribir). */
+  listPendingCommands(machineId: string): Promise<Command[]>; // runner
+
+  // --- Permisos (runner crea, app decide) ---
+  createPermission(input: CreatePermissionInput): Promise<Permission>; // runner
+  /** Resuelve un permiso (approved/rejected/expired). */
+  resolvePermission(permissionId: string, status: PermissionStatus): Promise<Permission>;
+  /** Permisos aún pendientes de una sesión (re-suscripción tras un corte). */
+  listPendingPermissions(sessionId: string): Promise<Permission[]>;
+}
+
+export interface CreatePermissionInput {
+  sessionId: string;
+  tool: string;
+  summary: string;
+  diff?: Payload;
+  /** Cuándo expira (el runner aplica la política por defecto al vencer). */
+  expiresAt?: string;
 }
 
 /** Cancela una suscripción. */

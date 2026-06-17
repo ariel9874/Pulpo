@@ -19,10 +19,22 @@ export interface AgentSession {
   dispose(): Promise<void>;
 }
 
+/** Petición de permiso que el agente hace antes de una acción sensible. */
+export interface PermissionRequest {
+  tool: string;
+  title: string;
+  /** Diff/resumen de lo que haría (texto). */
+  diff?: string;
+}
+export type PermissionDecision = "allow" | "deny";
+/** Pide permiso y se bloquea hasta que el usuario decide (o expira → deny). */
+export type RequestPermission = (request: PermissionRequest) => Promise<PermissionDecision>;
+
 export interface StartParams {
   session: Session;
   prompt: string;
   emit: EmitFn;
+  requestPermission: RequestPermission;
 }
 
 /**

@@ -3,23 +3,40 @@ import type {
   AgentType,
   BackendPort,
   Command,
+  Session,
   Unsubscribe,
 } from "@batuta/protocol";
-import type { AgentAdapter, AgentSession } from "./agent-adapter.js";
+import type {
+  AgentAdapter,
+  AgentSession,
+  PermissionDecision,
+  PermissionRequest,
+} from "./agent-adapter.js";
 
 export interface AgentRunnerOptions {
   onError?: (err: unknown) => void;
+  /** Tiempo máximo de espera de una decisión de permiso (ms). Por defecto 5 min. */
+  permissionTimeoutMs?: number;
+}
+
+interface PendingPermission {
+  resolve: (decision: PermissionDecision) => void;
+  timer: ReturnType<typeof setTimeout>;
 }
 
 /**
  * Orquesta el cableado runner↔backend: escucha los `commands` dirigidos a esta
- * máquina y los rutea al adaptador del agente, que emite `events`. Marca cada
- * comando como consumido (idempotencia: no re-ejecutar al reconectar).
+ * máquina y los rutea al adaptador del agente, que emite `events`. Gestiona el
+ * flujo de permisos (crear, emitir, bloquear, resolver, expirar) y hace catch-up
+ * de comandos sin consumir al (re)suscribir (idempotencia + reconexión).
  */
 export class AgentRunner {
   private readonly adapters = new Map<AgentType, AgentAdapter>();
   private readonly sessions = new Map<string, AgentSession>();
+  private readonly pendingPermissions = new Map<string, PendingPermission>();
+  private readonly processedCommands = new Set<string>();
   private readonly onError: (err: unknown) => void;
+  private readonly permissionTimeoutMs: number;
   private unsubscribe: Unsubscribe | undefined;
 
   constructor(
@@ -30,9 +47,10 @@ export class AgentRunner {
   ) {
     for (const adapter of adapters) this.adapters.set(adapter.agentType, adapter);
     this.onError = options.onError ?? ((err) => console.error("agent-runner:", err));
+    this.permissionTimeoutMs = options.permissionTimeoutMs ?? 5 * 60 * 1_000;
   }
 
-  /** Se suscribe a los comandos y resuelve cuando la suscripción está lista. */
+  /** Se suscribe a los comandos, espera a estar lista y procesa los pendientes. */
   async start(): Promise<void> {
     await new Promise<void>((resolve) => {
       this.unsubscribe = this.backend.subscribeCommands(
@@ -43,11 +61,18 @@ export class AgentRunner {
         },
       );
     });
+    // Catch-up: procesa comandos que llegaron mientras no había suscripción
+    // (p. ej. un approve enviado durante un corte de red).
+    for (const command of await this.backend.listPendingCommands(this.machineId)) {
+      void this.handle(command);
+    }
   }
 
   async stop(): Promise<void> {
     this.unsubscribe?.();
     this.unsubscribe = undefined;
+    for (const { timer } of this.pendingPermissions.values()) clearTimeout(timer);
+    this.pendingPermissions.clear();
     for (const session of this.sessions.values()) {
       try {
         await session.dispose();
@@ -59,6 +84,8 @@ export class AgentRunner {
   }
 
   private async handle(command: Command): Promise<void> {
+    if (this.processedCommands.has(command.id)) return; // dedup (catch-up + realtime)
+    this.processedCommands.add(command.id);
     try {
       await this.dispatch(command);
     } catch (err) {
@@ -86,6 +113,7 @@ export class AgentRunner {
           emit: async (event) => {
             await this.backend.appendEvent({ ...event, sessionId: session.id } as AppendEventInput);
           },
+          requestPermission: (request) => this.requestPermission(session, request),
         });
         this.sessions.set(session.id, agentSession);
         break;
@@ -104,9 +132,60 @@ export class AgentRunner {
         break;
       }
       case "approve":
-      case "reject":
-        // Decisiones de permiso: Etapa 11 (adaptador Claude Code).
+      case "reject": {
+        const status = command.type === "approve" ? "approved" : "rejected";
+        await this.backend.resolvePermission(command.permissionId, status).catch(this.onError);
+        const pending = this.pendingPermissions.get(command.permissionId);
+        if (pending) {
+          clearTimeout(pending.timer);
+          this.pendingPermissions.delete(command.permissionId);
+          pending.resolve(command.type === "approve" ? "allow" : "deny");
+          await this.backend
+            .updateSession(command.sessionId, { status: "running" })
+            .catch(this.onError);
+        }
         break;
+      }
     }
+  }
+
+  /**
+   * Crea un permiso persistente, emite `permission_required` y se bloquea hasta
+   * que llegue un approve/reject (o expire, en cuyo caso deniega por defecto).
+   */
+  private async requestPermission(
+    session: Session,
+    request: PermissionRequest,
+  ): Promise<PermissionDecision> {
+    const diff = request.diff ? ({ type: "inline", content: request.diff } as const) : undefined;
+    const permission = await this.backend.createPermission({
+      sessionId: session.id,
+      tool: request.tool,
+      summary: request.title,
+      ...(diff ? { diff } : {}),
+      expiresAt: new Date(Date.now() + this.permissionTimeoutMs).toISOString(),
+    });
+
+    await this.backend.appendEvent({
+      sessionId: session.id,
+      type: "permission_required",
+      permissionId: permission.id,
+      tool: request.tool,
+      summary: request.title,
+      ...(diff ? { diff } : {}),
+    });
+    await this.backend
+      .updateSession(session.id, { status: "waiting_permission" })
+      .catch(this.onError);
+
+    return new Promise<PermissionDecision>((resolve) => {
+      const timer = setTimeout(() => {
+        this.pendingPermissions.delete(permission.id);
+        void this.backend.resolvePermission(permission.id, "expired").catch(this.onError);
+        resolve("deny");
+      }, this.permissionTimeoutMs);
+      timer.unref?.();
+      this.pendingPermissions.set(permission.id, { resolve, timer });
+    });
   }
 }

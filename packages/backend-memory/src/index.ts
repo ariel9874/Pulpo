@@ -2,14 +2,18 @@ import {
   commandSchema,
   eventSchema,
   machineSchema,
+  permissionSchema,
   sessionSchema,
   PROTOCOL_VERSION,
   type AppendEventInput,
   type BackendPort,
   type Command,
+  type CreatePermissionInput,
   type CreateSessionInput,
   type Event,
   type Machine,
+  type Permission,
+  type PermissionStatus,
   type RegisterMachineInput,
   type SendCommandInput,
   type Session,
@@ -38,6 +42,7 @@ export class MemoryBackend implements BackendPort {
   private readonly eventsBySession = new Map<string, Event[]>();
   private readonly commandsById = new Map<string, Command>();
   private readonly consumedCommands = new Set<string>();
+  private readonly permissions = new Map<string, Permission>();
 
   private readonly eventSubs = new Map<string, Set<(event: Event) => void>>();
   private readonly sessionSubs = new Set<(session: Session) => void>();
@@ -203,6 +208,47 @@ export class MemoryBackend implements BackendPort {
   /** Solo para tests: ¿se marcó este comando como procesado? */
   isCommandConsumed(commandId: string): boolean {
     return this.consumedCommands.has(commandId);
+  }
+
+  async listPendingCommands(machineId: string): Promise<Command[]> {
+    return [...this.commandsById.values()]
+      .filter((c) => !this.consumedCommands.has(c.id) && this.resolveMachineId(c) === machineId)
+      .sort((a, b) => a.ts.localeCompare(b.ts));
+  }
+
+  // --- Permisos ---
+
+  async createPermission(input: CreatePermissionInput): Promise<Permission> {
+    const permission = permissionSchema.parse({
+      id: crypto.randomUUID(),
+      sessionId: input.sessionId,
+      status: "pending",
+      tool: input.tool,
+      summary: input.summary,
+      diff: input.diff,
+      expiresAt: input.expiresAt,
+      createdAt: new Date().toISOString(),
+    });
+    this.permissions.set(permission.id, permission);
+    return permission;
+  }
+
+  async resolvePermission(permissionId: string, status: PermissionStatus): Promise<Permission> {
+    const current = this.permissions.get(permissionId);
+    if (!current) throw new Error(`Permiso desconocido: ${permissionId}`);
+    const updated = permissionSchema.parse({
+      ...current,
+      status,
+      decidedAt: new Date().toISOString(),
+    });
+    this.permissions.set(permissionId, updated);
+    return updated;
+  }
+
+  async listPendingPermissions(sessionId: string): Promise<Permission[]> {
+    return [...this.permissions.values()].filter(
+      (p) => p.sessionId === sessionId && p.status === "pending",
+    );
   }
 
   // --- Helpers internos ---

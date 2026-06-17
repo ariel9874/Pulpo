@@ -11,4 +11,5 @@ export * from "./machine.js";
 export * from "./session.js";
 export * from "./events.js";
 export * from "./commands.js";
+export * from "./permission.js";
 export * from "./backend-port.js";

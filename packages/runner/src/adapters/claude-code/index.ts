@@ -53,13 +53,14 @@ export class ClaudeCodeAdapter implements AgentAdapter {
     params: StartParams,
     controller: AbortController,
   ): Promise<void> {
-    const { prompt, session, emit } = params;
+    const { prompt, session, emit, requestPermission } = params;
     let sawResult = false;
     try {
       for await (const message of transport.run({
         prompt,
         cwd: session.cwd,
         signal: controller.signal,
+        requestPermission,
       })) {
         await emit(toEvent(message));
         if (message.kind === "result") sawResult = true;

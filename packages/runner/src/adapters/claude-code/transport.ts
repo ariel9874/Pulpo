@@ -11,12 +11,16 @@ export type ClaudeMessage =
   | { kind: "result"; outcome: "completed" | "failed" }
   | { kind: "error"; message: string };
 
+import type { RequestPermission } from "../../agent-adapter.js";
+
 export interface ClaudeRunOptions {
   prompt: string;
   /** Directorio de trabajo donde corre Claude. */
   cwd: string;
   /** Se aborta para cancelar la ejecución. */
   signal: AbortSignal;
+  /** Pide permiso (bloqueante) antes de una acción sensible. */
+  requestPermission: RequestPermission;
 }
 
 export interface ClaudeTransport {

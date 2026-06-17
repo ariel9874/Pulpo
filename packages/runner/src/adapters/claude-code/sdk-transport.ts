@@ -58,6 +58,17 @@ export class SdkClaudeTransport implements ClaudeTransport {
           cwd: options.cwd,
           abortController: abort,
           permissionMode: "default",
+          // El hook de permisos del SDK: bloquea hasta que el usuario decide.
+          canUseTool: async (toolName: string, input: Record<string, unknown>) => {
+            const decision = await options.requestPermission({
+              tool: toolName,
+              title: summarizeTool(toolName, input),
+              diff: buildDiff(toolName, input),
+            });
+            return decision === "allow"
+              ? { behavior: "allow", updatedInput: input }
+              : { behavior: "deny", message: "Rechazado desde la app." };
+          },
           ...(this.model ? { model: this.model } : {}),
         },
       });
@@ -84,6 +95,19 @@ export class SdkClaudeTransport implements ClaudeTransport {
       options.signal.removeEventListener("abort", onAbort);
     }
   }
+}
+
+/** Diff/resumen textual de lo que haría una herramienta sensible (para el permiso). */
+function buildDiff(name: string, input: Record<string, unknown>): string | undefined {
+  const file = typeof input.file_path === "string" ? input.file_path : undefined;
+  if (typeof input.old_string === "string" && typeof input.new_string === "string") {
+    return `${file ?? ""}\n- ${input.old_string}\n+ ${input.new_string}`.trim();
+  }
+  if (file && typeof input.content === "string") {
+    return `${name} ${file}\n${input.content}`;
+  }
+  if (typeof input.command === "string") return `$ ${input.command}`;
+  return undefined;
 }
 
 /** Título corto para un tool_call: nombre + el campo más representativo del input. */

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { AgentEvent } from "../../agent-adapter.js";
 import { AgentRunner } from "../../agent-runner.js";
 import { ClaudeCodeAdapter } from "./index.js";
-import type { ClaudeMessage, ClaudeTransport } from "./transport.js";
+import type { ClaudeMessage, ClaudeRunOptions, ClaudeTransport } from "./transport.js";
 
 /** Transporte simulado: emite mensajes prefijados, sin SDK ni tokens. */
 class ScriptedTransport implements ClaudeTransport {
@@ -14,6 +14,25 @@ class ScriptedTransport implements ClaudeTransport {
       await Promise.resolve();
       yield message;
     }
+  }
+}
+
+/** Transporte simulado que pide permiso antes de "editar" y reacciona a la decisión. */
+class PermissionTransport implements ClaudeTransport {
+  async *run(options: ClaudeRunOptions): AsyncIterable<ClaudeMessage> {
+    yield { kind: "text", text: "voy a editar" };
+    const decision = await options.requestPermission({
+      tool: "Edit",
+      title: "Editar a.ts",
+      diff: "- a\n+ b",
+    });
+    if (decision === "allow") {
+      yield { kind: "tool_use", tool: "Edit", title: "Editar a.ts" };
+      yield { kind: "text", text: "editado" };
+    } else {
+      yield { kind: "text", text: "denegado" };
+    }
+    yield { kind: "result", outcome: "completed" };
   }
 }
 
@@ -63,6 +82,7 @@ describe("ClaudeCodeAdapter (transporte simulado)", () => {
       emit: async (event) => {
         events.push(event);
       },
+      requestPermission: async () => "allow",
     });
 
     await waitFor(() => (events.some((e) => e.type === "task_done") ? true : undefined));
@@ -102,6 +122,75 @@ describe("ClaudeCodeAdapter (transporte simulado)", () => {
     const events = await backend.listEvents(session.id);
     expect(events.some((e) => e.type === "message" && e.text === "hecho")).toBe(true);
 
+    await runner.stop();
+  });
+});
+
+describe("ClaudeCodeAdapter — permisos (Etapa 11, sin tokens)", () => {
+  async function startPermissionTask(opts?: { permissionTimeoutMs?: number }) {
+    const backend = new MemoryBackend();
+    const machine = await backend.registerMachine({ name: "PC" });
+    const runner = new AgentRunner(
+      backend,
+      machine.id,
+      [new ClaudeCodeAdapter(() => new PermissionTransport())],
+      opts,
+    );
+    await runner.start();
+    await backend.sendCommand({
+      type: "new_task",
+      machineId: machine.id,
+      agentType: "claude-code",
+      cwd: "/p",
+      prompt: "edita",
+    });
+    const session = await waitFor(async () => (await backend.listSessions())[0]);
+    const permEvent = await waitFor(async () =>
+      (await backend.listEvents(session.id)).find((e) => e.type === "permission_required"),
+    );
+    if (permEvent.type !== "permission_required") throw new Error("evento inesperado");
+    return { backend, runner, session, permissionId: permEvent.permissionId };
+  }
+
+  const hasEditado = async (backend: MemoryBackend, sessionId: string): Promise<boolean> =>
+    (await backend.listEvents(sessionId)).some((e) => e.type === "message" && e.text === "editado");
+
+  it("pide permiso, se bloquea y continúa al aprobar", async () => {
+    const { backend, runner, session, permissionId } = await startPermissionTask();
+    expect(await hasEditado(backend, session.id)).toBe(false); // bloqueado
+
+    await backend.sendCommand({ type: "approve", sessionId: session.id, permissionId });
+
+    await waitFor(async () =>
+      (await backend.listEvents(session.id)).find(
+        (e) => e.type === "message" && e.text === "editado",
+      ),
+    );
+    expect(await backend.listPendingPermissions(session.id)).toHaveLength(0);
+    await runner.stop();
+  });
+
+  it("deniega al rechazar", async () => {
+    const { backend, runner, session, permissionId } = await startPermissionTask();
+    await backend.sendCommand({ type: "reject", sessionId: session.id, permissionId });
+
+    await waitFor(async () =>
+      (await backend.listEvents(session.id)).find(
+        (e) => e.type === "message" && e.text === "denegado",
+      ),
+    );
+    expect(await hasEditado(backend, session.id)).toBe(false);
+    await runner.stop();
+  });
+
+  it("expira y deniega por defecto si nadie decide", async () => {
+    const { backend, runner, session } = await startPermissionTask({ permissionTimeoutMs: 150 });
+    await waitFor(async () =>
+      (await backend.listEvents(session.id)).find(
+        (e) => e.type === "message" && e.text === "denegado",
+      ),
+    );
+    expect(await backend.listPendingPermissions(session.id)).toHaveLength(0);
     await runner.stop();
   });
 });

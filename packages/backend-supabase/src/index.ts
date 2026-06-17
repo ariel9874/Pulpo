@@ -7,13 +7,17 @@ import {
   commandSchema,
   eventSchema,
   machineSchema,
+  permissionSchema,
   sessionSchema,
   type AppendEventInput,
   type BackendPort,
   type Command,
+  type CreatePermissionInput,
   type CreateSessionInput,
   type Event,
   type Machine,
+  type Permission,
+  type PermissionStatus,
   type RegisterMachineInput,
   type SendCommandInput,
   type Session,
@@ -271,6 +275,60 @@ export class SupabaseBackend implements BackendPort {
       .eq("id", commandId);
     if (error) throw error;
   }
+
+  async listPendingCommands(machineId: string): Promise<Command[]> {
+    const { data, error } = await this.client
+      .from("commands")
+      .select("*")
+      .eq("machine_id", machineId)
+      .is("consumed_at", null)
+      .order("ts", { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map((r) => rowToCommand(r as Row));
+  }
+
+  // --- Permisos ---
+
+  async createPermission(input: CreatePermissionInput): Promise<Permission> {
+    const userId = await this.requireUserId();
+    const { data, error } = await this.client
+      .from("permissions")
+      .insert({
+        user_id: userId,
+        session_id: input.sessionId,
+        status: "pending",
+        tool: input.tool,
+        summary: input.summary,
+        diff: input.diff ?? null,
+        expires_at: input.expiresAt ?? null,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return rowToPermission(data as Row);
+  }
+
+  async resolvePermission(permissionId: string, status: PermissionStatus): Promise<Permission> {
+    const { data, error } = await this.client
+      .from("permissions")
+      .update({ status, decided_at: new Date().toISOString() })
+      .eq("id", permissionId)
+      .select()
+      .single();
+    if (error) throw error;
+    return rowToPermission(data as Row);
+  }
+
+  async listPendingPermissions(sessionId: string): Promise<Permission[]> {
+    const { data, error } = await this.client
+      .from("permissions")
+      .select("*")
+      .eq("session_id", sessionId)
+      .eq("status", "pending")
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map((r) => rowToPermission(r as Row));
+  }
 }
 
 /**
@@ -374,4 +432,18 @@ function rowToCommand(r: Row): Command {
   if (r.session_id) base.sessionId = r.session_id;
   if (r.machine_id) base.machineId = r.machine_id;
   return commandSchema.parse(base);
+}
+
+function rowToPermission(r: Row): Permission {
+  return permissionSchema.parse({
+    id: r.id,
+    sessionId: r.session_id,
+    status: r.status,
+    tool: r.tool,
+    summary: r.summary ?? "",
+    diff: r.diff ? asObject(r.diff) : undefined,
+    expiresAt: r.expires_at ? toIso(r.expires_at) : undefined,
+    decidedAt: r.decided_at ? toIso(r.decided_at) : undefined,
+    createdAt: toIso(r.created_at),
+  });
 }
