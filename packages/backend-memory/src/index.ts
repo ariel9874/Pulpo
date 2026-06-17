@@ -1,5 +1,6 @@
 import {
   commandSchema,
+  deviceTokenSchema,
   eventSchema,
   machineSchema,
   permissionSchema,
@@ -8,8 +9,10 @@ import {
   type AppendEventInput,
   type BackendPort,
   type Command,
+  type CreateDeviceTokenInput,
   type CreatePermissionInput,
   type CreateSessionInput,
+  type DeviceToken,
   type Event,
   type Machine,
   type Permission,
@@ -43,6 +46,7 @@ export class MemoryBackend implements BackendPort {
   private readonly commandsById = new Map<string, Command>();
   private readonly consumedCommands = new Set<string>();
   private readonly permissions = new Map<string, Permission>();
+  private readonly deviceTokens = new Map<string, DeviceToken>();
 
   private readonly eventSubs = new Map<string, Set<(event: Event) => void>>();
   private readonly sessionSubs = new Set<(session: Session) => void>();
@@ -249,6 +253,32 @@ export class MemoryBackend implements BackendPort {
     return [...this.permissions.values()].filter(
       (p) => p.sessionId === sessionId && p.status === "pending",
     );
+  }
+
+  // --- Tokens de dispositivo ---
+
+  async registerDeviceToken(input: CreateDeviceTokenInput): Promise<DeviceToken> {
+    const existing = [...this.deviceTokens.values()].find(
+      (t) => t.userId === this.userId && t.token === input.token,
+    );
+    if (existing) {
+      const updated = deviceTokenSchema.parse({ ...existing, platform: input.platform });
+      this.deviceTokens.set(updated.id, updated);
+      return updated;
+    }
+    const token = deviceTokenSchema.parse({
+      id: crypto.randomUUID(),
+      userId: this.userId,
+      token: input.token,
+      platform: input.platform,
+      createdAt: new Date().toISOString(),
+    });
+    this.deviceTokens.set(token.id, token);
+    return token;
+  }
+
+  async listDeviceTokens(): Promise<DeviceToken[]> {
+    return [...this.deviceTokens.values()].filter((t) => t.userId === this.userId);
   }
 
   // --- Helpers internos ---

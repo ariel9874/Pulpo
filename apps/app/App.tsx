@@ -2,6 +2,7 @@ import type { Session } from "@batuta/protocol";
 import type { Session as AuthSession } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { registerForPush } from "./src/lib/push";
 import { isSupabaseConfigured, supabase } from "./src/lib/supabase";
 import { SessionScreen } from "./src/screens/SessionScreen";
 import { SessionsScreen } from "./src/screens/SessionsScreen";
@@ -19,6 +20,10 @@ export default function App() {
     const { data } = supabase.auth.onAuthStateChange((_event, next) => setAuth(next));
     return () => data.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (auth) void registerForPush();
+  }, [auth]);
 
   if (loading) {
     return (

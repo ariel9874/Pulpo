@@ -105,4 +105,23 @@ describe.skipIf(!hasEnv)("RLS — aislamiento entre usuarios (requiere Supabase 
     expect(bTitles).toContain("sB");
     expect(bTitles).not.toContain("sA");
   }, 30_000);
+
+  it("device_tokens: el token queda asociado al usuario y aislado por RLS", async () => {
+    const a = await makeUserBackend("dt-a");
+    const b = await makeUserBackend("dt-b");
+
+    const token = `ExponentPushToken[${Date.now()}]`;
+    const saved = await a.backend.registerDeviceToken({ token, platform: "android" });
+    expect(saved.userId).toBe(a.userId);
+    expect(saved.platform).toBe("android");
+
+    const aTokens = await a.backend.listDeviceTokens();
+    expect(aTokens.some((t) => t.token === token)).toBe(true);
+    // B no ve los tokens de A.
+    expect(await b.backend.listDeviceTokens()).toHaveLength(0);
+
+    // Idempotente: re-registrar el mismo token no duplica.
+    await a.backend.registerDeviceToken({ token, platform: "ios" });
+    expect((await a.backend.listDeviceTokens()).filter((t) => t.token === token)).toHaveLength(1);
+  }, 30_000);
 });

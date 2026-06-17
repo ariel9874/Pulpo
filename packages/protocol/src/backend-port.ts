@@ -1,5 +1,6 @@
 import type { Payload } from "./common.js";
 import type { Command } from "./commands.js";
+import type { DevicePlatform, DeviceToken } from "./device-token.js";
 import type { Event } from "./events.js";
 import type { Machine } from "./machine.js";
 import type { Permission, PermissionStatus } from "./permission.js";
@@ -65,6 +66,17 @@ export interface BackendPort {
   resolvePermission(permissionId: string, status: PermissionStatus): Promise<Permission>;
   /** Permisos aún pendientes de una sesión (re-suscripción tras un corte). */
   listPendingPermissions(sessionId: string): Promise<Permission[]>;
+
+  // --- Tokens de dispositivo (push) ---
+  /** Registra (upsert) el token de push del dispositivo del usuario. */
+  registerDeviceToken(input: CreateDeviceTokenInput): Promise<DeviceToken>; // app
+  /** Tokens de push del usuario. */
+  listDeviceTokens(): Promise<DeviceToken[]>;
+}
+
+export interface CreateDeviceTokenInput {
+  token: string;
+  platform: DevicePlatform;
 }
 
 export interface CreatePermissionInput {

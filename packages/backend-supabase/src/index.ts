@@ -5,6 +5,7 @@ import {
 } from "@supabase/supabase-js";
 import {
   commandSchema,
+  deviceTokenSchema,
   eventSchema,
   machineSchema,
   permissionSchema,
@@ -12,8 +13,10 @@ import {
   type AppendEventInput,
   type BackendPort,
   type Command,
+  type CreateDeviceTokenInput,
   type CreatePermissionInput,
   type CreateSessionInput,
+  type DeviceToken,
   type Event,
   type Machine,
   type Permission,
@@ -329,6 +332,31 @@ export class SupabaseBackend implements BackendPort {
     if (error) throw error;
     return (data ?? []).map((r) => rowToPermission(r as Row));
   }
+
+  // --- Tokens de dispositivo ---
+
+  async registerDeviceToken(input: CreateDeviceTokenInput): Promise<DeviceToken> {
+    const userId = await this.requireUserId();
+    const { data, error } = await this.client
+      .from("device_tokens")
+      .upsert(
+        { user_id: userId, token: input.token, platform: input.platform },
+        { onConflict: "user_id,token" },
+      )
+      .select()
+      .single();
+    if (error) throw error;
+    return rowToDeviceToken(data as Row);
+  }
+
+  async listDeviceTokens(): Promise<DeviceToken[]> {
+    const { data, error } = await this.client
+      .from("device_tokens")
+      .select("*")
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map((r) => rowToDeviceToken(r as Row));
+  }
 }
 
 /**
@@ -432,6 +460,16 @@ function rowToCommand(r: Row): Command {
   if (r.session_id) base.sessionId = r.session_id;
   if (r.machine_id) base.machineId = r.machine_id;
   return commandSchema.parse(base);
+}
+
+function rowToDeviceToken(r: Row): DeviceToken {
+  return deviceTokenSchema.parse({
+    id: r.id,
+    userId: r.user_id,
+    token: r.token,
+    platform: r.platform,
+    createdAt: toIso(r.created_at),
+  });
 }
 
 function rowToPermission(r: Row): Permission {
