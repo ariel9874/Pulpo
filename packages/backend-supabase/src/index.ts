@@ -21,6 +21,8 @@ import {
   type UpdateSessionInput,
 } from "@batuta/protocol";
 
+export * from "./pairing.js";
+
 /** Callback opcional de estado de una suscripción Realtime (útil en tests). */
 export type SubscriptionStatusHandler = (status: string) => void;
 

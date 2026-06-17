@@ -6,7 +6,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "batuta-runner": "./dist/index.js"
+    "batuta-runner": "./dist/cli.js"
   },
   "exports": {
     ".": {
@@ -17,5 +17,12 @@
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@batuta/backend-supabase": "workspace:*",
+    "@batuta/protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.48.1"
   }
 }

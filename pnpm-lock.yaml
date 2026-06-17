@@ -59,7 +59,18 @@ importers:
         specifier: ^3.24.1
         version: 3.25.76
 
-  packages/runner: {}
+  packages/runner:
+    dependencies:
+      '@batuta/backend-supabase':
+        specifier: workspace:*
+        version: link:../backend-supabase
+      '@batuta/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+    devDependencies:
+      '@supabase/supabase-js':
+        specifier: ^2.48.1
+        version: 2.108.2
 
 packages:
 
