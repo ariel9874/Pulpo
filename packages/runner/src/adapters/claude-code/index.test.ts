@@ -36,6 +36,16 @@ class PermissionTransport implements ClaudeTransport {
   }
 }
 
+/** Transporte simulado en streaming: hace eco de cada mensaje de entrada (prompt + follow-ups). */
+class StreamingTransport implements ClaudeTransport {
+  async *run(options: ClaudeRunOptions): AsyncIterable<ClaudeMessage> {
+    for await (const text of options.input) {
+      yield { kind: "text", text: `eco: ${text}` };
+      yield { kind: "result", outcome: "completed" };
+    }
+  }
+}
+
 async function waitFor<T>(
   fn: () => T | undefined | Promise<T | undefined>,
   timeoutMs = 1_000,
@@ -191,6 +201,57 @@ describe("ClaudeCodeAdapter — permisos (Etapa 11, sin tokens)", () => {
       ),
     );
     expect(await backend.listPendingPermissions(session.id)).toHaveLength(0);
+    await runner.stop();
+  });
+});
+
+describe("ClaudeCodeAdapter — comandos entrantes (Etapa 12, sin tokens)", () => {
+  async function startTask() {
+    const backend = new MemoryBackend();
+    const machine = await backend.registerMachine({ name: "PC" });
+    const runner = new AgentRunner(backend, machine.id, [
+      new ClaudeCodeAdapter(() => new StreamingTransport()),
+    ]);
+    await runner.start();
+    await backend.sendCommand({
+      type: "new_task",
+      machineId: machine.id,
+      agentType: "claude-code",
+      cwd: "/p",
+      prompt: "hola",
+    });
+    const session = await waitFor(async () => (await backend.listSessions())[0]);
+    await waitFor(async () =>
+      (await backend.listEvents(session.id)).find(
+        (e) => e.type === "message" && e.text === "eco: hola",
+      ),
+    );
+    return { backend, runner, session };
+  }
+
+  it("send_message alimenta a la sesión de Claude en curso", async () => {
+    const { backend, runner, session } = await startTask();
+
+    await backend.sendCommand({ type: "send_message", sessionId: session.id, text: "mundo" });
+    await waitFor(async () =>
+      (await backend.listEvents(session.id)).find(
+        (e) => e.type === "message" && e.text === "eco: mundo",
+      ),
+    );
+    await runner.stop();
+  });
+
+  it("cancel a media tarea deja la sesión en cancelled", async () => {
+    const { backend, runner, session } = await startTask();
+
+    await backend.sendCommand({ type: "cancel", sessionId: session.id });
+    await waitFor(async () =>
+      (await backend.listEvents(session.id)).find(
+        (e) => e.type === "task_done" && e.outcome === "cancelled",
+      ),
+    );
+    const updated = (await backend.listSessions()).find((s) => s.id === session.id);
+    expect(updated?.status).toBe("cancelled");
     await runner.stop();
   });
 });

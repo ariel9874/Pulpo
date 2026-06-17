@@ -1,10 +1,5 @@
-import type {
-  AgentAdapter,
-  AgentEvent,
-  AgentSession,
-  EmitFn,
-  StartParams,
-} from "../../agent-adapter.js";
+import type { AgentAdapter, AgentEvent, AgentSession, StartParams } from "../../agent-adapter.js";
+import { MessageQueue } from "./message-queue.js";
 import { SdkClaudeTransport } from "./sdk-transport.js";
 import type { ClaudeMessage, ClaudeTransport } from "./transport.js";
 
@@ -43,21 +38,24 @@ export class ClaudeCodeAdapter implements AgentAdapter {
 
   async start(params: StartParams): Promise<AgentSession> {
     const controller = new AbortController();
+    const input = new MessageQueue();
+    input.push(params.prompt); // el prompt inicial es el primer mensaje
     const transport = this.createTransport();
-    void this.pump(transport, params, controller);
-    return new ClaudeCodeSession(controller, params.emit);
+    void this.pump(transport, params, input, controller);
+    return new ClaudeCodeSession(input, controller);
   }
 
   private async pump(
     transport: ClaudeTransport,
     params: StartParams,
+    input: MessageQueue,
     controller: AbortController,
   ): Promise<void> {
-    const { prompt, session, emit, requestPermission } = params;
+    const { session, emit, requestPermission } = params;
     let sawResult = false;
     try {
       for await (const message of transport.run({
-        prompt,
+        input,
         cwd: session.cwd,
         signal: controller.signal,
         requestPermission,
@@ -65,7 +63,10 @@ export class ClaudeCodeAdapter implements AgentAdapter {
         await emit(toEvent(message));
         if (message.kind === "result") sawResult = true;
       }
-      if (!sawResult && !controller.signal.aborted) {
+      // El stream terminó: si fue por cancelación, ciérralo como cancelado.
+      if (controller.signal.aborted) {
+        await emit({ type: "task_done", outcome: "cancelled" });
+      } else if (!sawResult) {
         await emit({ type: "task_done", outcome: "completed" });
       }
     } catch (err) {
@@ -80,24 +81,23 @@ export class ClaudeCodeAdapter implements AgentAdapter {
 
 class ClaudeCodeSession implements AgentSession {
   constructor(
+    private readonly input: MessageQueue,
     private readonly controller: AbortController,
-    private readonly emit: EmitFn,
   ) {}
 
   async sendMessage(text: string): Promise<void> {
-    // Enviar mensajes a una sesión de Claude en curso llega en la Etapa 12.
-    await this.emit({
-      type: "message",
-      role: "system",
-      text: `Mensaje recibido ("${text.slice(0, 60)}"). El envío a una sesión de Claude en curso llega en la Etapa 12.`,
-    });
+    // Alimenta a la sesión de Claude en curso (modo de entrada en streaming).
+    this.input.push(text);
   }
 
   async cancel(): Promise<void> {
+    // Cancelación limpia: corta tras la operación en curso y cierra la entrada.
     this.controller.abort();
+    this.input.close();
   }
 
   async dispose(): Promise<void> {
     this.controller.abort();
+    this.input.close();
   }
 }

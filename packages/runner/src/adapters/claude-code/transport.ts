@@ -14,7 +14,9 @@ export type ClaudeMessage =
 import type { RequestPermission } from "../../agent-adapter.js";
 
 export interface ClaudeRunOptions {
-  prompt: string;
+  /** Entrada del usuario: el primer elemento es el prompt; los siguientes,
+   *  los `send_message` de la sesión en curso. Termina al cerrarse. */
+  input: AsyncIterable<string>;
   /** Directorio de trabajo donde corre Claude. */
   cwd: string;
   /** Se aborta para cancelar la ejecución. */

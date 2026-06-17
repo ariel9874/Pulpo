@@ -16,7 +16,17 @@ interface SdkMessage {
   message?: { content?: SdkContentBlock[] };
 }
 interface ClaudeAgentSdk {
-  query(args: { prompt: string; options?: Record<string, unknown> }): AsyncIterable<SdkMessage>;
+  query(args: {
+    prompt: string | AsyncIterable<unknown>;
+    options?: Record<string, unknown>;
+  }): AsyncIterable<SdkMessage>;
+}
+
+/** Mapea la entrada del usuario al formato de mensajes del SDK (modo streaming). */
+async function* toSdkUserMessages(input: AsyncIterable<string>): AsyncIterable<unknown> {
+  for await (const text of input) {
+    yield { type: "user", message: { role: "user", content: text }, parent_tool_use_id: null };
+  }
 }
 
 /**
@@ -53,7 +63,7 @@ export class SdkClaudeTransport implements ClaudeTransport {
     options.signal.addEventListener("abort", onAbort, { once: true });
     try {
       const stream = sdk.query({
-        prompt: options.prompt,
+        prompt: toSdkUserMessages(options.input),
         options: {
           cwd: options.cwd,
           abortController: abort,
