@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { Event } from "@batuta/protocol";
+import type { Event, Session } from "@batuta/protocol";
 import { SupabaseBackend } from "./index.js";
 
 const URL = process.env.SUPABASE_URL;
@@ -131,6 +131,45 @@ describe.skipIf(!hasEnv)("SupabaseBackend (integración — requiere Supabase lo
       expect(event).toMatchObject({ sessionId, type: "message", protocolVersion: 1 });
       // El caso feliz local es < 1 s; toleramos hasta 2 s para no flaquear bajo carga.
       expect(latencyMs).toBeLessThan(2_000);
+    },
+  );
+
+  // El mecanismo en el que se apoya la lista de sesiones de la app (Etapa 14).
+  it(
+    "subscribeSessions entrega una sesión nueva en vivo",
+    { timeout: 30_000, retry: 2 },
+    async () => {
+      const title = `live-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+      let resolveSeen!: (session: Session) => void;
+      const seen = new Promise<Session>((resolve) => {
+        resolveSeen = resolve;
+      });
+      const ready = new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error("no SUBSCRIBED a tiempo")), 10_000);
+        reader.subscribeSessions(
+          (session) => {
+            if (session.title === title) resolveSeen(session);
+          },
+          (status) => {
+            if (status === "SUBSCRIBED") {
+              clearTimeout(timer);
+              resolve();
+            }
+          },
+        );
+      });
+      await ready;
+      await new Promise((r) => setTimeout(r, 300));
+
+      const created = await writer.createSession({
+        machineId,
+        agentType: "echo",
+        title,
+        cwd: "/tmp/live",
+      });
+      const session = await withTimeout(seen, 10_000, "sesión por Realtime");
+      expect(session.id).toBe(created.id);
     },
   );
 });

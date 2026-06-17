@@ -1,8 +1,8 @@
-import { PROTOCOL_VERSION } from "@batuta/protocol";
 import type { Session } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { isSupabaseConfigured, supabase } from "./src/lib/supabase";
+import { SessionsScreen } from "./src/screens/SessionsScreen";
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -24,7 +24,14 @@ export default function App() {
       </View>
     );
   }
-  return session ? <Home email={session.user.email ?? "—"} /> : <Login />;
+  return session ? (
+    <SessionsScreen
+      email={session.user.email ?? "—"}
+      onSignOut={() => void supabase.auth.signOut()}
+    />
+  ) : (
+    <Login />
+  );
 }
 
 function Login() {
@@ -73,19 +80,6 @@ function Login() {
       </Pressable>
       <Pressable style={styles.linkButton} disabled={busy} onPress={() => void submit("signUp")}>
         <Text style={styles.link}>Crear cuenta</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-function Home({ email }: { email: string }) {
-  return (
-    <View style={styles.center}>
-      <Text style={styles.title}>Batuta</Text>
-      <Text style={styles.text}>Sesión iniciada como {email}</Text>
-      <Text style={styles.muted}>Protocolo v{PROTOCOL_VERSION} · aún sin sesiones</Text>
-      <Pressable style={styles.button} onPress={() => void supabase.auth.signOut()}>
-        <Text style={styles.buttonText}>Cerrar sesión</Text>
       </Pressable>
     </View>
   );
