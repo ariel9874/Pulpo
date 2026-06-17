@@ -1,0 +1,74 @@
+import type { Command } from "./commands.js";
+import type { Event } from "./events.js";
+import type { Machine } from "./machine.js";
+import type { Session, SessionStatus } from "./session.js";
+
+/**
+ * `BackendPort` — la capa de abstracción sobre el BaaS.
+ *
+ * Ni el runner ni la app llaman a Supabase directamente: hablan con esta
+ * interfaz. Hoy la implementa `backend-supabase`; para tests, `backend-memory`.
+ * Mañana, lo que quieras (self-host). Es el contrato que hace portable el sistema.
+ */
+export interface BackendPort {
+  // --- Auth ---
+  /** Id del usuario autenticado, o `null` si no hay sesión. */
+  getCurrentUserId(): Promise<string | null>;
+
+  // --- Máquinas (lado runner) ---
+  registerMachine(input: RegisterMachineInput): Promise<Machine>;
+  /** Actualiza `lastSeen` y marca la máquina online. */
+  heartbeat(machineId: string): Promise<void>;
+
+  // --- Sesiones ---
+  createSession(input: CreateSessionInput): Promise<Session>; // runner
+  updateSession(id: string, patch: UpdateSessionInput): Promise<Session>; // runner
+  listSessions(): Promise<Session[]>; // app
+  /** Cambios en sesiones (creación/estado) en vivo. */
+  subscribeSessions(handler: (session: Session) => void): Unsubscribe; // app
+
+  // --- Eventos (actividad del agente: runner escribe, app lee) ---
+  appendEvent(input: AppendEventInput): Promise<Event>; // runner
+  listEvents(sessionId: string): Promise<Event[]>; // app
+  /** Eventos nuevos de una sesión en vivo (no reproduce el histórico). */
+  subscribeEvents(sessionId: string, handler: (event: Event) => void): Unsubscribe; // app
+
+  // --- Comandos (órdenes de la app: app escribe, runner lee) ---
+  sendCommand(input: SendCommandInput): Promise<Command>; // app
+  /** Comandos dirigidos a las sesiones/máquina de este runner, en vivo. */
+  subscribeCommands(machineId: string, handler: (command: Command) => void): Unsubscribe; // runner
+  /** Marca un comando como procesado (idempotencia: no re-ejecutar al reconectar). */
+  markCommandConsumed(commandId: string): Promise<void>; // runner
+}
+
+/** Cancela una suscripción. */
+export type Unsubscribe = () => void;
+
+/** `Omit` que respeta las uniones discriminadas (las distribuye variante a variante). */
+export type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+
+/**
+ * Lo que el runner aporta al emitir un evento. El backend asigna `id`, `ts` y
+ * `protocolVersion`, de modo que la versión siempre sea la correcta.
+ */
+export type AppendEventInput = DistributiveOmit<Event, "id" | "ts" | "protocolVersion">;
+
+/** Lo que la app aporta al mandar un comando. El backend asigna `id`/`ts`/`protocolVersion`. */
+export type SendCommandInput = DistributiveOmit<Command, "id" | "ts" | "protocolVersion">;
+
+export interface RegisterMachineInput {
+  name: string;
+  /** Si se pasa, re-registra una máquina existente (reconexión); si no, crea una. */
+  id?: string;
+}
+
+export interface CreateSessionInput {
+  machineId: string;
+  agentType: Session["agentType"];
+  title: string;
+  cwd: string;
+  /** Por defecto `"starting"`. */
+  status?: SessionStatus;
+}
+
+export type UpdateSessionInput = Partial<Pick<Session, "title" | "status">>;

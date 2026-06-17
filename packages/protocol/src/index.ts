@@ -7,6 +7,8 @@
  */
 
 export * from "./common.js";
+export * from "./machine.js";
 export * from "./session.js";
 export * from "./events.js";
 export * from "./commands.js";
+export * from "./backend-port.js";

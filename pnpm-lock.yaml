@@ -35,7 +35,11 @@ importers:
 
   apps/app: {}
 
-  packages/backend-memory: {}
+  packages/backend-memory:
+    dependencies:
+      '@batuta/protocol':
+        specifier: workspace:*
+        version: link:../protocol
 
   packages/backend-supabase: {}
 
