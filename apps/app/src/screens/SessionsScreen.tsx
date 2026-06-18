@@ -17,6 +17,7 @@ import { upsertSession } from "../lib/sessions";
 import { themeIcon, type Palette } from "../lib/theme";
 import { useThemeContext } from "../lib/theme-context";
 import { NewTaskModal } from "./NewTaskModal";
+import { PairModal } from "./PairModal";
 
 const STATUS_LABEL: Record<Session["status"], string> = {
   starting: "Arrancando",
@@ -52,7 +53,13 @@ export function SessionsScreen({
   const [machines, setMachines] = useState<Record<string, Machine>>({});
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
+  const [showPair, setShowPair] = useState(false);
   const [query, setQuery] = useState("");
+
+  const reloadMachines = async (): Promise<void> => {
+    const machineList = await backend.listMachines();
+    setMachines(Object.fromEntries(machineList.map((m) => [m.id, m])) as Record<string, Machine>);
+  };
 
   useEffect(() => {
     let active = true;
@@ -100,6 +107,9 @@ export function SessionsScreen({
           <Pressable onPress={cycle} style={styles.iconBtn}>
             <Text style={styles.iconText}>{themeIcon(preference)}</Text>
           </Pressable>
+          <Pressable onPress={() => setShowPair(true)} style={styles.iconBtn}>
+            <Text style={styles.iconText}>🔗</Text>
+          </Pressable>
           <Pressable onPress={() => setShowNew(true)} style={styles.newButton}>
             <Text style={styles.newButtonText}>+ Nueva</Text>
           </Pressable>
@@ -136,7 +146,9 @@ export function SessionsScreen({
                 {query ? "Sin resultados para tu búsqueda." : "No hay PCs emparejadas todavía."}
               </Text>
               {query ? null : (
-                <Text style={styles.muted}>Ejecuta el runner (pair) para conectar una.</Text>
+                <Pressable onPress={() => setShowPair(true)} style={styles.pairCta}>
+                  <Text style={styles.pairCtaText}>🔗 Emparejar una PC</Text>
+                </Pressable>
               )}
             </View>
           }
@@ -178,6 +190,12 @@ export function SessionsScreen({
         machines={Object.values(machines)}
         onClose={() => setShowNew(false)}
       />
+
+      <PairModal
+        visible={showPair}
+        onClose={() => setShowPair(false)}
+        onPaired={() => void reloadMachines()}
+      />
     </View>
   );
 }
@@ -218,7 +236,14 @@ const makeStyles = (p: Palette) =>
       color: p.text,
     },
     pushHint: { fontSize: 11, color: p.muted, textAlign: "center", paddingVertical: 6 },
-    center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 6, padding: 24 },
+    center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, padding: 24 },
+    pairCta: {
+      backgroundColor: p.primary,
+      paddingHorizontal: 18,
+      paddingVertical: 12,
+      borderRadius: 10,
+    },
+    pairCtaText: { color: p.primaryText, fontWeight: "700" },
     list: { paddingHorizontal: 16, paddingBottom: 8 },
     sectionHeader: {
       flexDirection: "row",
