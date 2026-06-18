@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createSupabaseBackend } from "@batuta/backend-supabase";
 import { ClaudeCodeAdapter } from "./adapters/claude-code/index.js";
 import { EchoAdapter } from "./adapters/echo.js";
@@ -6,6 +9,7 @@ import { AgentRunner } from "./agent-runner.js";
 import { loadCredential, defaultCredentialPath } from "./credentials.js";
 import { RunnerDaemon } from "./daemon.js";
 import { pair } from "./pair.js";
+import { installService, serviceStatus, uninstallService, type ServiceContext } from "./service.js";
 
 async function runPair(): Promise<void> {
   const url = process.env.BATUTA_SUPABASE_URL;
@@ -51,13 +55,37 @@ async function runDaemon(): Promise<void> {
   process.on("SIGTERM", () => void shutdown());
 }
 
+async function runService(action: string | undefined): Promise<void> {
+  const home = process.env.BATUTA_HOME ?? join(homedir(), ".batuta");
+  const ctx: ServiceContext = {
+    nodePath: process.execPath,
+    scriptPath: fileURLToPath(import.meta.url),
+    workingDir: home,
+    ...(process.env.BATUTA_HOME ? { env: { BATUTA_HOME: process.env.BATUTA_HOME } } : {}),
+  };
+  if (action === "install") return installService(ctx);
+  if (action === "uninstall") return uninstallService();
+  if (action === "status") {
+    serviceStatus();
+    return;
+  }
+  console.error("Uso: batuta-runner service <install|uninstall|status>");
+  process.exit(1);
+}
+
 async function main(): Promise<void> {
   const command = process.argv[2];
   if (command === "pair") return runPair();
   if (command === "run") return runDaemon();
+  if (command === "service") return runService(process.argv[3]);
 
   console.log("Batuta runner");
-  console.log("Uso: batuta-runner <pair|run>");
+  console.log("Uso: batuta-runner <pair|run|service>");
+  console.log("  pair                 empareja esta PC con tu cuenta");
+  console.log("  run                  arranca el runner (en primer plano)");
+  console.log("  service install      instala el runner como servicio del sistema");
+  console.log("  service uninstall    quita el servicio");
+  console.log("  service status       muestra el estado del servicio");
   if (command && command !== "help" && command !== "--help") process.exit(1);
 }
 
