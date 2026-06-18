@@ -1,7 +1,8 @@
-import { isMachineOnline, type Machine, type Session } from "@batuta/protocol";
-import { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { type Machine, type Session } from "@batuta/protocol";
+import { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Pressable, SectionList, StyleSheet, Text, View } from "react-native";
 import { backend } from "../lib/backend";
+import { groupByMachine } from "../lib/grouping";
 import { ntfyTopicFor } from "../lib/push";
 import { upsertSession } from "../lib/sessions";
 import { NewTaskModal } from "./NewTaskModal";
@@ -15,6 +16,13 @@ const STATUS_LABEL: Record<Session["status"], string> = {
   error: "Error",
   cancelled: "Cancelada",
 };
+
+interface Section {
+  key: string;
+  machine: Machine | null;
+  online: boolean;
+  data: Session[];
+}
 
 export function SessionsScreen({
   email,
@@ -54,6 +62,17 @@ export function SessionsScreen({
     };
   }, []);
 
+  const sections: Section[] = useMemo(
+    () =>
+      groupByMachine(Object.values(machines), sessions).map((g) => ({
+        key: g.machine?.id ?? "unknown",
+        machine: g.machine,
+        online: g.online,
+        data: g.sessions,
+      })),
+    [machines, sessions],
+  );
+
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
@@ -77,33 +96,45 @@ export function SessionsScreen({
         <View style={styles.center}>
           <ActivityIndicator />
         </View>
-      ) : sessions.length === 0 ? (
-        <View style={styles.center}>
-          <Text style={styles.muted}>No hay sesiones todavía.</Text>
-          <Text style={styles.muted}>Pulsa «+ Nueva» para lanzar una tarea.</Text>
-        </View>
       ) : (
-        <FlatList
-          data={sessions}
+        <SectionList
+          sections={sections}
           keyExtractor={(s) => s.id}
           contentContainerStyle={styles.list}
-          renderItem={({ item }) => {
-            const machine = machines[item.machineId];
-            const online = machine ? isMachineOnline(machine) : false;
-            return (
-              <Pressable style={styles.row} onPress={() => onOpen(item)}>
-                <View style={styles.rowMain}>
-                  <Text style={styles.rowTitle} numberOfLines={1}>
-                    {item.title || "(sin título)"}
-                  </Text>
-                  <Text style={styles.muted}>
-                    {(machine?.name ?? "máquina") + " · " + (online ? "online" : "offline")}
-                  </Text>
-                </View>
-                <Text style={styles.badge}>{STATUS_LABEL[item.status]}</Text>
-              </Pressable>
-            );
-          }}
+          stickySectionHeadersEnabled={false}
+          ListEmptyComponent={
+            <View style={styles.center}>
+              <Text style={styles.muted}>No hay PCs emparejadas todavía.</Text>
+              <Text style={styles.muted}>Ejecuta el runner (pair) para conectar una.</Text>
+            </View>
+          }
+          renderSectionHeader={({ section }) => (
+            <View style={styles.sectionHeader}>
+              <View style={[styles.dot, section.online ? styles.dotOn : styles.dotOff]} />
+              <Text style={styles.machineName} numberOfLines={1}>
+                {section.machine?.name ?? "Máquina desconocida"}
+              </Text>
+              <Text style={styles.machineMeta}>
+                {section.online ? "online" : "offline"} · {section.data.length}
+              </Text>
+            </View>
+          )}
+          renderSectionFooter={({ section }) =>
+            section.data.length === 0 ? (
+              <Text style={styles.emptyHint}>Sin sesiones — pulsa «+ Nueva».</Text>
+            ) : null
+          }
+          renderItem={({ item }) => (
+            <Pressable style={styles.row} onPress={() => onOpen(item)}>
+              <View style={styles.rowMain}>
+                <Text style={styles.rowTitle} numberOfLines={1}>
+                  {item.title || "(sin título)"}
+                </Text>
+                <Text style={styles.muted}>{item.agentType}</Text>
+              </View>
+              <Text style={styles.badge}>{STATUS_LABEL[item.status]}</Text>
+            </Pressable>
+          )}
         />
       )}
       <Text style={styles.pushHint} numberOfLines={1}>
@@ -143,7 +174,20 @@ const styles = StyleSheet.create({
   signOutText: { color: "#2563eb", fontWeight: "600" },
   pushHint: { fontSize: 11, color: "#94a3b8", textAlign: "center", paddingVertical: 6 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 6, padding: 24 },
-  list: { paddingHorizontal: 16, gap: 8 },
+  list: { paddingHorizontal: 16, paddingBottom: 8 },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingTop: 16,
+    paddingBottom: 6,
+  },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  dotOn: { backgroundColor: "#16a34a" },
+  dotOff: { backgroundColor: "#cbd5e1" },
+  machineName: { fontSize: 13, fontWeight: "700", color: "#0f172a", flexShrink: 1 },
+  machineMeta: { fontSize: 12, color: "#94a3b8", marginLeft: "auto" },
+  emptyHint: { fontSize: 12, color: "#94a3b8", paddingVertical: 8, paddingLeft: 16 },
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -153,6 +197,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 14,
     gap: 12,
+    marginTop: 8,
   },
   rowMain: { flexShrink: 1, gap: 2 },
   rowTitle: { fontSize: 16, fontWeight: "600" },
