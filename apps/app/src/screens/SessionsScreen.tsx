@@ -1,10 +1,21 @@
 import { type Machine, type Session } from "@batuta/protocol";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, SectionList, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  SectionList,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { backend } from "../lib/backend";
 import { groupByMachine } from "../lib/grouping";
 import { ntfyTopicFor } from "../lib/push";
+import { filterSessions } from "../lib/search";
 import { upsertSession } from "../lib/sessions";
+import { themeIcon, type Palette } from "../lib/theme";
+import { useTheme } from "../lib/useTheme";
 import { NewTaskModal } from "./NewTaskModal";
 
 const STATUS_LABEL: Record<Session["status"], string> = {
@@ -35,10 +46,13 @@ export function SessionsScreen({
   onSignOut: () => void;
   onOpen: (session: Session) => void;
 }) {
+  const { palette, preference, cycle } = useTheme();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [machines, setMachines] = useState<Record<string, Machine>>({});
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -64,13 +78,13 @@ export function SessionsScreen({
 
   const sections: Section[] = useMemo(
     () =>
-      groupByMachine(Object.values(machines), sessions).map((g) => ({
+      groupByMachine(Object.values(machines), filterSessions(sessions, query)).map((g) => ({
         key: g.machine?.id ?? "unknown",
         machine: g.machine,
         online: g.online,
         data: g.sessions,
       })),
-    [machines, sessions],
+    [machines, sessions, query],
   );
 
   return (
@@ -83,6 +97,9 @@ export function SessionsScreen({
           </Text>
         </View>
         <View style={styles.headerActions}>
+          <Pressable onPress={cycle} style={styles.iconBtn}>
+            <Text style={styles.iconText}>{themeIcon(preference)}</Text>
+          </Pressable>
           <Pressable onPress={() => setShowNew(true)} style={styles.newButton}>
             <Text style={styles.newButtonText}>+ Nueva</Text>
           </Pressable>
@@ -91,6 +108,16 @@ export function SessionsScreen({
           </Pressable>
         </View>
       </View>
+
+      <TextInput
+        style={styles.search}
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Buscar en el historial…"
+        placeholderTextColor={palette.muted}
+        autoCapitalize="none"
+        clearButtonMode="while-editing"
+      />
 
       {loading ? (
         <View style={styles.center}>
@@ -102,10 +129,15 @@ export function SessionsScreen({
           keyExtractor={(s) => s.id}
           contentContainerStyle={styles.list}
           stickySectionHeadersEnabled={false}
+          keyboardShouldPersistTaps="handled"
           ListEmptyComponent={
             <View style={styles.center}>
-              <Text style={styles.muted}>No hay PCs emparejadas todavía.</Text>
-              <Text style={styles.muted}>Ejecuta el runner (pair) para conectar una.</Text>
+              <Text style={styles.muted}>
+                {query ? "Sin resultados para tu búsqueda." : "No hay PCs emparejadas todavía."}
+              </Text>
+              {query ? null : (
+                <Text style={styles.muted}>Ejecuta el runner (pair) para conectar una.</Text>
+              )}
             </View>
           }
           renderSectionHeader={({ section }) => (
@@ -150,64 +182,78 @@ export function SessionsScreen({
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, paddingTop: 48 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  headerText: { flexShrink: 1 },
-  title: { fontSize: 24, fontWeight: "700" },
-  muted: { fontSize: 13, color: "#666" },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: 4 },
-  newButton: {
-    backgroundColor: "#2563eb",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  newButtonText: { color: "white", fontWeight: "700" },
-  signOut: { paddingHorizontal: 12, paddingVertical: 8 },
-  signOutText: { color: "#2563eb", fontWeight: "600" },
-  pushHint: { fontSize: 11, color: "#94a3b8", textAlign: "center", paddingVertical: 6 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 6, padding: 24 },
-  list: { paddingHorizontal: 16, paddingBottom: 8 },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingTop: 16,
-    paddingBottom: 6,
-  },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  dotOn: { backgroundColor: "#16a34a" },
-  dotOff: { backgroundColor: "#cbd5e1" },
-  machineName: { fontSize: 13, fontWeight: "700", color: "#0f172a", flexShrink: 1 },
-  machineMeta: { fontSize: 12, color: "#94a3b8", marginLeft: "auto" },
-  emptyHint: { fontSize: 12, color: "#94a3b8", paddingVertical: 8, paddingLeft: 16 },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderWidth: 1,
-    borderColor: "#eee",
-    borderRadius: 10,
-    padding: 14,
-    gap: 12,
-    marginTop: 8,
-  },
-  rowMain: { flexShrink: 1, gap: 2 },
-  rowTitle: { fontSize: 16, fontWeight: "600" },
-  badge: {
-    fontSize: 12,
-    color: "#334155",
-    backgroundColor: "#f1f5f9",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    overflow: "hidden",
-  },
-});
+const makeStyles = (p: Palette) =>
+  StyleSheet.create({
+    screen: { flex: 1, paddingTop: 48, backgroundColor: p.bg },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 20,
+      paddingBottom: 12,
+    },
+    headerText: { flexShrink: 1 },
+    title: { fontSize: 24, fontWeight: "700", color: p.text },
+    muted: { fontSize: 13, color: p.muted },
+    headerActions: { flexDirection: "row", alignItems: "center", gap: 4 },
+    iconBtn: { paddingHorizontal: 8, paddingVertical: 8 },
+    iconText: { fontSize: 18 },
+    newButton: {
+      backgroundColor: p.primary,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 8,
+    },
+    newButtonText: { color: p.primaryText, fontWeight: "700" },
+    signOut: { paddingHorizontal: 12, paddingVertical: 8 },
+    signOutText: { color: p.primary, fontWeight: "600" },
+    search: {
+      marginHorizontal: 16,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: p.inputBorder,
+      borderRadius: 999,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      color: p.text,
+    },
+    pushHint: { fontSize: 11, color: p.muted, textAlign: "center", paddingVertical: 6 },
+    center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 6, padding: 24 },
+    list: { paddingHorizontal: 16, paddingBottom: 8 },
+    sectionHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      paddingTop: 16,
+      paddingBottom: 6,
+    },
+    dot: { width: 8, height: 8, borderRadius: 4 },
+    dotOn: { backgroundColor: "#16a34a" },
+    dotOff: { backgroundColor: p.border },
+    machineName: { fontSize: 13, fontWeight: "700", color: p.text, flexShrink: 1 },
+    machineMeta: { fontSize: 12, color: p.muted, marginLeft: "auto" },
+    emptyHint: { fontSize: 12, color: p.muted, paddingVertical: 8, paddingLeft: 16 },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      borderWidth: 1,
+      borderColor: p.border,
+      borderRadius: 10,
+      padding: 14,
+      gap: 12,
+      marginTop: 8,
+      backgroundColor: p.card,
+    },
+    rowMain: { flexShrink: 1, gap: 2 },
+    rowTitle: { fontSize: 16, fontWeight: "600", color: p.text },
+    badge: {
+      fontSize: 12,
+      color: p.badgeText,
+      backgroundColor: p.badgeBg,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 999,
+      overflow: "hidden",
+    },
+  });

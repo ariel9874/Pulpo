@@ -1,7 +1,8 @@
 import type { AgentType, Machine } from "@batuta/protocol";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { backend } from "../lib/backend";
+import { isSpeechSupported, startDictation } from "../lib/speech";
 
 const AGENTS: AgentType[] = ["claude-code", "echo"];
 
@@ -19,9 +20,36 @@ export function NewTaskModal({
   const [cwd, setCwd] = useState(".");
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
+  const [listening, setListening] = useState(false);
+  const stopDictation = useRef<(() => void) | null>(null);
+  const speechOk = isSpeechSupported();
 
   const selectedMachine = machineId ?? machines[0]?.id ?? null;
   const canLaunch = Boolean(selectedMachine) && prompt.trim().length > 0 && !busy;
+
+  const toggleDictation = (): void => {
+    if (listening) {
+      stopDictation.current?.();
+      stopDictation.current = null;
+      setListening(false);
+      return;
+    }
+    const stop = startDictation({
+      onText: (text) => setPrompt((prev) => (prev ? `${prev} ${text}` : text)),
+      onEnd: () => {
+        stopDictation.current = null;
+        setListening(false);
+      },
+      onError: () => {
+        stopDictation.current = null;
+        setListening(false);
+      },
+    });
+    if (stop) {
+      stopDictation.current = stop;
+      setListening(true);
+    }
+  };
 
   const launch = async (): Promise<void> => {
     if (!selectedMachine || !prompt.trim()) return;
@@ -89,7 +117,16 @@ export function NewTaskModal({
                 placeholder="."
               />
 
-              <Text style={styles.label}>Tarea</Text>
+              <View style={styles.labelRow}>
+                <Text style={styles.label}>Tarea</Text>
+                {speechOk ? (
+                  <Pressable onPress={toggleDictation} style={styles.mic}>
+                    <Text style={listening ? styles.micOn : styles.micText}>
+                      {listening ? "● Grabando… (toca para parar)" : "🎤 Dictar"}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
               <TextInput
                 style={[styles.input, styles.multiline]}
                 value={prompt}
@@ -130,6 +167,15 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, fontWeight: "700", marginBottom: 4 },
   muted: { color: "#666", paddingVertical: 12 },
   label: { fontSize: 12, color: "#64748b", marginTop: 8 },
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  mic: { paddingVertical: 4, paddingHorizontal: 6 },
+  micText: { fontSize: 12, color: "#2563eb", fontWeight: "600" },
+  micOn: { fontSize: 12, color: "#dc2626", fontWeight: "700" },
   chips: { flexDirection: "row", gap: 8 },
   chip: {
     borderWidth: 1,
