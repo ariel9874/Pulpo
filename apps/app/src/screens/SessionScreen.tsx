@@ -14,11 +14,13 @@ import {
 import { resolveArtifactUrl } from "../lib/artifacts";
 import { backend } from "../lib/backend";
 import { appendEvents } from "../lib/events";
+import { GalleryScreen } from "./GalleryScreen";
 
 export function SessionScreen({ session, onBack }: { session: Session; onBack: () => void }) {
   const [events, setEvents] = useState<Event[]>([]);
   const [pending, setPending] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [showGallery, setShowGallery] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -65,6 +67,16 @@ export function SessionScreen({ session, onBack }: { session: Session; onBack: (
   const cancelTask = (): void =>
     void backend.sendCommand({ type: "cancel", sessionId: session.id });
 
+  if (showGallery) {
+    return (
+      <GalleryScreen
+        events={events}
+        title={session.title || "Sesión"}
+        onBack={() => setShowGallery(false)}
+      />
+    );
+  }
+
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
@@ -74,6 +86,9 @@ export function SessionScreen({ session, onBack }: { session: Session; onBack: (
         <Text style={styles.title} numberOfLines={1}>
           {session.title || "Sesión"}
         </Text>
+        <Pressable onPress={() => setShowGallery(true)} style={styles.gallery}>
+          <Text style={styles.galleryText}>🖼 Galería</Text>
+        </Pressable>
       </View>
       {loading ? (
         <View style={styles.center}>
@@ -241,6 +256,8 @@ const styles = StyleSheet.create({
   back: { paddingHorizontal: 8, paddingVertical: 6 },
   backText: { color: "#2563eb", fontWeight: "600", fontSize: 16 },
   title: { fontSize: 20, fontWeight: "700", flexShrink: 1 },
+  gallery: { marginLeft: "auto", paddingHorizontal: 8, paddingVertical: 6 },
+  galleryText: { color: "#2563eb", fontWeight: "600" },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   list: { paddingHorizontal: 16, paddingBottom: 24, gap: 8 },
   muted: { color: "#666" },
