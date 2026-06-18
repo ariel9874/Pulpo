@@ -15,7 +15,7 @@ import { ntfyTopicFor } from "../lib/push";
 import { filterSessions } from "../lib/search";
 import { upsertSession } from "../lib/sessions";
 import { themeIcon, type Palette } from "../lib/theme";
-import { useTheme } from "../lib/useTheme";
+import { useThemeContext } from "../lib/theme-context";
 import { NewTaskModal } from "./NewTaskModal";
 
 const STATUS_LABEL: Record<Session["status"], string> = {
@@ -46,7 +46,7 @@ export function SessionsScreen({
   onSignOut: () => void;
   onOpen: (session: Session) => void;
 }) {
-  const { palette, preference, cycle } = useTheme();
+  const { palette, preference, cycle } = useThemeContext();
   const styles = useMemo(() => makeStyles(palette), [palette]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [machines, setMachines] = useState<Record<string, Machine>>({});

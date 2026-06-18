@@ -3,6 +3,8 @@ import { useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { backend } from "../lib/backend";
 import { isSpeechSupported, startDictation } from "../lib/speech";
+import type { Palette } from "../lib/theme";
+import { useThemeContext, useThemedStyles } from "../lib/theme-context";
 
 const AGENTS: AgentType[] = ["claude-code", "echo"];
 
@@ -15,6 +17,8 @@ export function NewTaskModal({
   machines: Machine[];
   onClose: () => void;
 }) {
+  const { palette } = useThemeContext();
+  const styles = useThemedStyles(makeStyles);
   const [machineId, setMachineId] = useState<string | null>(null);
   const [agentType, setAgentType] = useState<AgentType>("claude-code");
   const [cwd, setCwd] = useState(".");
@@ -115,6 +119,7 @@ export function NewTaskModal({
                 onChangeText={setCwd}
                 autoCapitalize="none"
                 placeholder="."
+                placeholderTextColor={palette.muted}
               />
 
               <View style={styles.labelRow}>
@@ -133,6 +138,7 @@ export function NewTaskModal({
                 onChangeText={setPrompt}
                 multiline
                 placeholder="¿Qué quieres que haga el agente?"
+                placeholderTextColor={palette.muted}
               />
             </>
           )}
@@ -155,55 +161,57 @@ export function NewTaskModal({
   );
 }
 
-const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.35)" },
-  sheet: {
-    backgroundColor: "white",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: 20,
-    gap: 8,
-  },
-  title: { fontSize: 20, fontWeight: "700", marginBottom: 4 },
-  muted: { color: "#666", paddingVertical: 12 },
-  label: { fontSize: 12, color: "#64748b", marginTop: 8 },
-  labelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 8,
-  },
-  mic: { paddingVertical: 4, paddingHorizontal: 6 },
-  micText: { fontSize: 12, color: "#2563eb", fontWeight: "600" },
-  micOn: { fontSize: 12, color: "#dc2626", fontWeight: "700" },
-  chips: { flexDirection: "row", gap: 8 },
-  chip: {
-    borderWidth: 1,
-    borderColor: "#cbd5e1",
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  chipOn: { backgroundColor: "#2563eb", borderColor: "#2563eb" },
-  chipText: { color: "#334155" },
-  chipOnText: { color: "white", fontWeight: "600" },
-  input: {
-    borderWidth: 1,
-    borderColor: "#cbd5e1",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  multiline: { minHeight: 80, textAlignVertical: "top" },
-  actions: { flexDirection: "row", justifyContent: "flex-end", gap: 12, marginTop: 16 },
-  cancelBtn: { paddingHorizontal: 16, paddingVertical: 12 },
-  cancelText: { color: "#64748b", fontWeight: "600" },
-  launchBtn: {
-    backgroundColor: "#2563eb",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  launchText: { color: "white", fontWeight: "700" },
-  disabled: { opacity: 0.5 },
-});
+const makeStyles = (p: Palette) =>
+  StyleSheet.create({
+    backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" },
+    sheet: {
+      backgroundColor: p.card,
+      borderTopLeftRadius: 16,
+      borderTopRightRadius: 16,
+      padding: 20,
+      gap: 8,
+    },
+    title: { fontSize: 20, fontWeight: "700", marginBottom: 4, color: p.text },
+    muted: { color: p.muted, paddingVertical: 12 },
+    label: { fontSize: 12, color: p.muted, marginTop: 8 },
+    labelRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: 8,
+    },
+    mic: { paddingVertical: 4, paddingHorizontal: 6 },
+    micText: { fontSize: 12, color: p.primary, fontWeight: "600" },
+    micOn: { fontSize: 12, color: "#dc2626", fontWeight: "700" },
+    chips: { flexDirection: "row", gap: 8 },
+    chip: {
+      borderWidth: 1,
+      borderColor: p.inputBorder,
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+    },
+    chipOn: { backgroundColor: p.primary, borderColor: p.primary },
+    chipText: { color: p.badgeText },
+    chipOnText: { color: p.primaryText, fontWeight: "600" },
+    input: {
+      borderWidth: 1,
+      borderColor: p.inputBorder,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      color: p.text,
+    },
+    multiline: { minHeight: 80, textAlignVertical: "top" },
+    actions: { flexDirection: "row", justifyContent: "flex-end", gap: 12, marginTop: 16 },
+    cancelBtn: { paddingHorizontal: 16, paddingVertical: 12 },
+    cancelText: { color: p.muted, fontWeight: "600" },
+    launchBtn: {
+      backgroundColor: p.primary,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      borderRadius: 8,
+    },
+    launchText: { color: p.primaryText, fontWeight: "700" },
+    disabled: { opacity: 0.5 },
+  });

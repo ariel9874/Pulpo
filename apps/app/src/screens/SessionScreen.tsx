@@ -14,9 +14,13 @@ import {
 import { resolveArtifactUrl } from "../lib/artifacts";
 import { backend } from "../lib/backend";
 import { appendEvents } from "../lib/events";
+import type { Palette } from "../lib/theme";
+import { useThemeContext, useThemedStyles } from "../lib/theme-context";
 import { GalleryScreen } from "./GalleryScreen";
 
 export function SessionScreen({ session, onBack }: { session: Session; onBack: () => void }) {
+  const { palette } = useThemeContext();
+  const styles = useThemedStyles(makeStyles);
   const [events, setEvents] = useState<Event[]>([]);
   const [pending, setPending] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -92,7 +96,7 @@ export function SessionScreen({ session, onBack }: { session: Session; onBack: (
       </View>
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator />
+          <ActivityIndicator color={palette.primary} />
         </View>
       ) : (
         <FlatList
@@ -125,6 +129,7 @@ export function SessionScreen({ session, onBack }: { session: Session; onBack: (
           value={draft}
           onChangeText={setDraft}
           placeholder="Mensaje a Claude…"
+          placeholderTextColor={palette.muted}
           onSubmitEditing={() => void send()}
         />
         <Pressable
@@ -163,6 +168,7 @@ function EventRow({ event }: { event: Event }) {
 }
 
 function ArtifactView({ artifact }: { artifact: Artifact }) {
+  const styles = useThemedStyles(makeStyles);
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
@@ -200,6 +206,7 @@ function PermissionView({
   isPending: boolean;
   onDecide: (permissionId: string, decision: "approve" | "reject") => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const diff = event.diff?.type === "inline" ? event.diff.content : null;
   return (
     <View style={styles.permission}>
@@ -228,6 +235,7 @@ function PermissionView({
 }
 
 function Line({ children, muted, warn }: { children: ReactNode; muted?: boolean; warn?: boolean }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <Text style={[styles.line, muted ? styles.muted : null, warn ? styles.warn : null]}>
       {children}
@@ -236,6 +244,7 @@ function Line({ children, muted, warn }: { children: ReactNode; muted?: boolean;
 }
 
 function Bubble({ label, text }: { label: string; text: string }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.bubble}>
       <Text style={styles.bubbleLabel}>{label}</Text>
@@ -244,80 +253,82 @@ function Bubble({ label, text }: { label: string; text: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, paddingTop: 48 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-  },
-  back: { paddingHorizontal: 8, paddingVertical: 6 },
-  backText: { color: "#2563eb", fontWeight: "600", fontSize: 16 },
-  title: { fontSize: 20, fontWeight: "700", flexShrink: 1 },
-  gallery: { marginLeft: "auto", paddingHorizontal: 8, paddingVertical: 6 },
-  galleryText: { color: "#2563eb", fontWeight: "600" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  list: { paddingHorizontal: 16, paddingBottom: 24, gap: 8 },
-  muted: { color: "#666" },
-  warn: { color: "#b00020" },
-  line: { fontSize: 14 },
-  bubble: { backgroundColor: "#f1f5f9", borderRadius: 10, padding: 12, gap: 2 },
-  bubbleLabel: { fontSize: 11, color: "#64748b", textTransform: "uppercase" },
-  bubbleText: { fontSize: 15 },
-  card: { borderWidth: 1, borderColor: "#e2e8f0", borderRadius: 10, padding: 12, gap: 8 },
-  cardTitle: { fontWeight: "600" },
-  image: { width: "100%", height: 220, backgroundColor: "#f8fafc", borderRadius: 8 },
-  link: { color: "#2563eb", fontWeight: "600" },
-  permission: {
-    borderWidth: 1,
-    borderColor: "#fbbf24",
-    backgroundColor: "#fffbeb",
-    borderRadius: 10,
-    padding: 12,
-    gap: 8,
-  },
-  permTitle: { fontWeight: "700" },
-  diff: {
-    fontFamily: "monospace",
-    fontSize: 12,
-    backgroundColor: "#0f172a",
-    color: "#e2e8f0",
-    padding: 10,
-    borderRadius: 8,
-  },
-  permActions: { flexDirection: "row", gap: 10 },
-  btn: { flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: 8 },
-  approve: { backgroundColor: "#16a34a" },
-  reject: { backgroundColor: "#dc2626" },
-  btnText: { color: "white", fontWeight: "700" },
-  flex: { flex: 1 },
-  footer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#e2e8f0",
-  },
-  cancelTask: { paddingHorizontal: 8, paddingVertical: 8 },
-  cancelTaskText: { color: "#dc2626", fontWeight: "600" },
-  composer: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#cbd5e1",
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  sendBtn: {
-    backgroundColor: "#2563eb",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 999,
-  },
-  sendDisabled: { opacity: 0.5 },
-  sendText: { color: "white", fontWeight: "700" },
-});
+const makeStyles = (p: Palette) =>
+  StyleSheet.create({
+    screen: { flex: 1, paddingTop: 48, backgroundColor: p.bg },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      paddingHorizontal: 12,
+      paddingBottom: 12,
+    },
+    back: { paddingHorizontal: 8, paddingVertical: 6 },
+    backText: { color: p.primary, fontWeight: "600", fontSize: 16 },
+    title: { fontSize: 20, fontWeight: "700", flexShrink: 1, color: p.text },
+    gallery: { marginLeft: "auto", paddingHorizontal: 8, paddingVertical: 6 },
+    galleryText: { color: p.primary, fontWeight: "600" },
+    center: { flex: 1, alignItems: "center", justifyContent: "center" },
+    list: { paddingHorizontal: 16, paddingBottom: 24, gap: 8 },
+    muted: { color: p.muted },
+    warn: { color: "#ef4444" },
+    line: { fontSize: 14, color: p.text },
+    bubble: { backgroundColor: p.badgeBg, borderRadius: 10, padding: 12, gap: 2 },
+    bubbleLabel: { fontSize: 11, color: p.muted, textTransform: "uppercase" },
+    bubbleText: { fontSize: 15, color: p.text },
+    card: { borderWidth: 1, borderColor: p.border, borderRadius: 10, padding: 12, gap: 8 },
+    cardTitle: { fontWeight: "600", color: p.text },
+    image: { width: "100%", height: 220, backgroundColor: p.badgeBg, borderRadius: 8 },
+    link: { color: p.primary, fontWeight: "600" },
+    permission: {
+      borderWidth: 1,
+      borderColor: "#f59e0b",
+      backgroundColor: p.badgeBg,
+      borderRadius: 10,
+      padding: 12,
+      gap: 8,
+    },
+    permTitle: { fontWeight: "700", color: p.text },
+    diff: {
+      fontFamily: "monospace",
+      fontSize: 12,
+      backgroundColor: "#0f172a",
+      color: "#e2e8f0",
+      padding: 10,
+      borderRadius: 8,
+    },
+    permActions: { flexDirection: "row", gap: 10 },
+    btn: { flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: 8 },
+    approve: { backgroundColor: "#16a34a" },
+    reject: { backgroundColor: "#dc2626" },
+    btnText: { color: "white", fontWeight: "700" },
+    flex: { flex: 1 },
+    footer: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderTopWidth: 1,
+      borderTopColor: p.border,
+    },
+    cancelTask: { paddingHorizontal: 8, paddingVertical: 8 },
+    cancelTaskText: { color: "#dc2626", fontWeight: "600" },
+    composer: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: p.inputBorder,
+      borderRadius: 999,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      color: p.text,
+    },
+    sendBtn: {
+      backgroundColor: p.primary,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 999,
+    },
+    sendDisabled: { opacity: 0.5 },
+    sendText: { color: p.primaryText, fontWeight: "700" },
+  });

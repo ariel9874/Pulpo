@@ -4,10 +4,22 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { registerForPush } from "./src/lib/push";
 import { isSupabaseConfigured, supabase } from "./src/lib/supabase";
+import type { Palette } from "./src/lib/theme";
+import { ThemeProvider, useThemeContext, useThemedStyles } from "./src/lib/theme-context";
 import { SessionScreen } from "./src/screens/SessionScreen";
 import { SessionsScreen } from "./src/screens/SessionsScreen";
 
 export default function App() {
+  return (
+    <ThemeProvider>
+      <AppInner />
+    </ThemeProvider>
+  );
+}
+
+function AppInner() {
+  const { palette } = useThemeContext();
+  const styles = useThemedStyles(makeStyles);
   const [loading, setLoading] = useState(true);
   const [auth, setAuth] = useState<AuthSession | null>(null);
   const [open, setOpen] = useState<Session | null>(null);
@@ -28,7 +40,7 @@ export default function App() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator />
+        <ActivityIndicator color={palette.primary} />
       </View>
     );
   }
@@ -45,6 +57,8 @@ export default function App() {
 }
 
 function Login() {
+  const { palette } = useThemeContext();
+  const styles = useThemedStyles(makeStyles);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -72,6 +86,7 @@ function Login() {
       <TextInput
         style={styles.input}
         placeholder="email"
+        placeholderTextColor={palette.muted}
         autoCapitalize="none"
         keyboardType="email-address"
         value={email}
@@ -80,6 +95,7 @@ function Login() {
       <TextInput
         style={styles.input}
         placeholder="contraseña"
+        placeholderTextColor={palette.muted}
         secureTextEntry
         value={password}
         onChangeText={setPassword}
@@ -95,28 +111,35 @@ function Login() {
   );
 }
 
-const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 12 },
-  title: { fontSize: 28, fontWeight: "700" },
-  text: { fontSize: 16 },
-  muted: { fontSize: 13, color: "#666" },
-  warn: { color: "#b00020", textAlign: "center" },
-  input: {
-    width: "100%",
-    maxWidth: 320,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  button: {
-    backgroundColor: "#2563eb",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  buttonText: { color: "white", fontWeight: "600" },
-  linkButton: { paddingVertical: 8 },
-  link: { color: "#2563eb" },
-});
+const makeStyles = (p: Palette) =>
+  StyleSheet.create({
+    center: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 24,
+      gap: 12,
+      backgroundColor: p.bg,
+    },
+    title: { fontSize: 28, fontWeight: "700", color: p.text },
+    warn: { color: "#ef4444", textAlign: "center" },
+    input: {
+      width: "100%",
+      maxWidth: 320,
+      borderWidth: 1,
+      borderColor: p.inputBorder,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      color: p.text,
+    },
+    button: {
+      backgroundColor: p.primary,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      borderRadius: 8,
+    },
+    buttonText: { color: p.primaryText, fontWeight: "600" },
+    linkButton: { paddingVertical: 8 },
+    link: { color: p.primary },
+  });
