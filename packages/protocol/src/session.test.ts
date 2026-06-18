@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { safeParseSession } from "./session.js";
+import { isTerminalSessionStatus, safeParseSession } from "./session.js";
 
 const ID_A = "11111111-1111-4111-8111-111111111111";
 const ID_B = "22222222-2222-4222-8222-222222222222";
@@ -31,5 +31,20 @@ describe("sessionSchema", () => {
 
   it("rechaza un agentType desconocido", () => {
     expect(safeParseSession({ ...validSession, agentType: "hal9000" }).success).toBe(false);
+  });
+});
+
+describe("isTerminalSessionStatus", () => {
+  it("done/error/cancelled son terminales", () => {
+    expect(isTerminalSessionStatus("done")).toBe(true);
+    expect(isTerminalSessionStatus("error")).toBe(true);
+    expect(isTerminalSessionStatus("cancelled")).toBe(true);
+  });
+
+  it("starting/running/waiting_* no son terminales (siguen vivas)", () => {
+    expect(isTerminalSessionStatus("starting")).toBe(false);
+    expect(isTerminalSessionStatus("running")).toBe(false);
+    expect(isTerminalSessionStatus("waiting_permission")).toBe(false);
+    expect(isTerminalSessionStatus("waiting_input")).toBe(false);
   });
 });

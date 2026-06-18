@@ -27,5 +27,21 @@ export const sessionSchema = z.object({
 });
 export type Session = z.infer<typeof sessionSchema>;
 
+/** Estados finales: la sesión ya no avanza por sí sola. */
+export const TERMINAL_SESSION_STATUSES = [
+  "done",
+  "error",
+  "cancelled",
+] as const satisfies readonly SessionStatus[];
+
+/**
+ * ¿La sesión terminó? Se usa al reconectar para detectar "huérfanas": sesiones
+ * en un estado no-terminal cuyo runner murió, que hay que cerrar para que no
+ * queden eternamente "en curso" (ver `AgentRunner`).
+ */
+export function isTerminalSessionStatus(status: SessionStatus): boolean {
+  return (TERMINAL_SESSION_STATUSES as readonly SessionStatus[]).includes(status);
+}
+
 export const parseSession = (input: unknown): Session => sessionSchema.parse(input);
 export const safeParseSession = (input: unknown) => sessionSchema.safeParse(input);

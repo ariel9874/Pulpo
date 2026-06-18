@@ -51,6 +51,8 @@ export class MemoryBackend implements BackendPort {
   private readonly eventSubs = new Map<string, Set<(event: Event) => void>>();
   private readonly sessionSubs = new Set<(session: Session) => void>();
   private readonly commandSubs = new Map<string, Set<(command: Command) => void>>();
+  private readonly commandStatusSubs = new Map<string, Set<SubscriptionStatusHandler>>();
+  private readonly offlineMachines = new Set<string>();
 
   constructor(options: MemoryBackendOptions = {}) {
     this.userId = options.userId ?? "00000000-0000-4000-8000-000000000000";
@@ -201,8 +203,35 @@ export class MemoryBackend implements BackendPort {
     const set = this.commandSubs.get(machineId) ?? new Set();
     set.add(handler);
     this.commandSubs.set(machineId, set);
+    const statusSet = this.commandStatusSubs.get(machineId) ?? new Set();
+    if (onStatus) statusSet.add(onStatus);
+    this.commandStatusSubs.set(machineId, statusSet);
     queueMicrotask(() => onStatus?.("SUBSCRIBED"));
-    return () => set.delete(handler);
+    return () => {
+      set.delete(handler);
+      if (onStatus) statusSet.delete(onStatus);
+    };
+  }
+
+  /**
+   * Solo para tests: simula un corte de red. Los comandos enviados durante el
+   * corte se guardan (quedan pendientes) pero NO se entregan en vivo, igual que
+   * cuando se cae el websocket de Realtime.
+   */
+  simulateOutage(machineId: string): void {
+    this.offlineMachines.add(machineId);
+  }
+
+  /**
+   * Solo para tests: simula que Realtime se cayó y volvió, re-disparando
+   * `SUBSCRIBED` (como hace supabase-js al re-unirse al canal). El runner usa
+   * esa señal para hacer catch-up de los comandos perdidos durante el corte.
+   */
+  simulateReconnect(machineId: string): void {
+    this.offlineMachines.delete(machineId);
+    for (const onStatus of [...(this.commandStatusSubs.get(machineId) ?? [])]) {
+      onStatus("SUBSCRIBED");
+    }
   }
 
   async markCommandConsumed(commandId: string): Promise<void> {
@@ -300,6 +329,7 @@ export class MemoryBackend implements BackendPort {
   }
 
   private emitCommand(machineId: string, command: Command): void {
+    if (this.offlineMachines.has(machineId)) return; // corte simulado: queda pendiente
     const subs = this.commandSubs.get(machineId);
     if (!subs) return;
     for (const handler of [...subs]) queueMicrotask(() => handler(command));

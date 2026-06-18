@@ -1,10 +1,11 @@
-import type {
-  AppendEventInput,
-  AgentType,
-  BackendPort,
-  Command,
-  Session,
-  Unsubscribe,
+import {
+  isTerminalSessionStatus,
+  type AppendEventInput,
+  type AgentType,
+  type BackendPort,
+  type Command,
+  type Session,
+  type Unsubscribe,
 } from "@batuta/protocol";
 import type {
   AgentAdapter,
@@ -50,21 +51,79 @@ export class AgentRunner {
     this.permissionTimeoutMs = options.permissionTimeoutMs ?? 5 * 60 * 1_000;
   }
 
-  /** Se suscribe a los comandos, espera a estar lista y procesa los pendientes. */
+  /**
+   * Arranca el runner. Primero reconcilia sesiones huérfanas (de una ejecución
+   * anterior que murió), luego se suscribe a los comandos y, en cada
+   * (re)suscripción, hace catch-up de los comandos perdidos durante el corte.
+   */
   async start(): Promise<void> {
+    await this.reconcileOrphans();
     await new Promise<void>((resolve) => {
+      let ready = false;
       this.unsubscribe = this.backend.subscribeCommands(
         this.machineId,
         (command) => void this.handle(command),
         (status) => {
-          if (status === "SUBSCRIBED") resolve();
+          if (status !== "SUBSCRIBED") return;
+          // Realtime no reproduce lo perdido durante un corte: tras CADA
+          // (re)suscripción recuperamos los comandos sin consumir. El dedup de
+          // `handle` evita reprocesar (idempotencia).
+          void this.catchUp();
+          if (!ready) {
+            ready = true;
+            resolve();
+          }
         },
       );
     });
-    // Catch-up: procesa comandos que llegaron mientras no había suscripción
-    // (p. ej. un approve enviado durante un corte de red).
-    for (const command of await this.backend.listPendingCommands(this.machineId)) {
-      void this.handle(command);
+  }
+
+  /** Procesa los comandos sin consumir de esta máquina (catch-up). */
+  private async catchUp(): Promise<void> {
+    try {
+      for (const command of await this.backend.listPendingCommands(this.machineId)) {
+        void this.handle(command);
+      }
+    } catch (err) {
+      this.onError(err);
+    }
+  }
+
+  /**
+   * Cierra las sesiones "huérfanas": las que quedaron en un estado no-terminal
+   * porque el runner murió a media tarea. Al reiniciar ya no existe la sesión en
+   * memoria (la conversación del SDK se perdió), así que no se pueden continuar;
+   * las marcamos `error` y expiramos sus permisos pendientes para que la app no
+   * las muestre eternamente "en curso".
+   */
+  private async reconcileOrphans(): Promise<void> {
+    let sessions: Session[];
+    try {
+      sessions = await this.backend.listSessions();
+    } catch (err) {
+      this.onError(err);
+      return;
+    }
+    const orphans = sessions.filter(
+      (s) =>
+        s.machineId === this.machineId &&
+        !isTerminalSessionStatus(s.status) &&
+        !this.sessions.has(s.id),
+    );
+    for (const session of orphans) {
+      try {
+        for (const permission of await this.backend.listPendingPermissions(session.id)) {
+          await this.backend.resolvePermission(permission.id, "expired");
+        }
+        await this.backend.appendEvent({
+          sessionId: session.id,
+          type: "error",
+          message: "Sesión interrumpida: el runner se reinició y no puede continuarla.",
+        });
+        await this.backend.updateSession(session.id, { status: "error" });
+      } catch (err) {
+        this.onError(err);
+      }
     }
   }
 
