@@ -37,8 +37,26 @@ export const refPayloadSchema = z.object({
   size: z.number().int().nonnegative(),
   mime: z.string().min(1).optional(),
 });
-export const payloadSchema = z.discriminatedUnion("type", [inlinePayloadSchema, refPayloadSchema]);
+/**
+ * Payload cifrado extremo-a-extremo (cliente↔runner). El backend solo ve opaco:
+ * `ciphertext`. El runner lo sella (sealed-box NaCl) hacia la clave pública de la
+ * app; solo la app lo abre con su privada. Ver `encryption.ts` y SECURITY.md.
+ */
+export const encryptedPayloadSchema = z.object({
+  type: z.literal("encrypted"),
+  alg: z.literal("nacl-box-anon"),
+  /** Clave pública efímera del remitente (base64). */
+  epk: z.string().min(1),
+  nonce: z.string().min(1),
+  ciphertext: z.string().min(1),
+});
+export const payloadSchema = z.discriminatedUnion("type", [
+  inlinePayloadSchema,
+  refPayloadSchema,
+  encryptedPayloadSchema,
+]);
 export type Payload = z.infer<typeof payloadSchema>;
+export type EncryptedPayload = z.infer<typeof encryptedPayloadSchema>;
 
 /** Recurso generado por la IA: texto, imagen, audio, video u otro fichero. */
 export const artifactKindSchema = z.enum(["text", "image", "audio", "video", "file"]);
