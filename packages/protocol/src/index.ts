@@ -14,3 +14,4 @@ export * from "./commands.js";
 export * from "./permission.js";
 export * from "./device-token.js";
 export * from "./backend-port.js";
+export * from "./signing.js";

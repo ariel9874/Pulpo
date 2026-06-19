@@ -9,6 +9,11 @@ const commandBase = {
   protocolVersion: protocolVersionSchema,
   id: uuidSchema,
   ts: isoDateTimeSchema,
+  // Firma opcional (la añade la app; el runner la exige si tiene clave configurada).
+  // Ver signing.ts. Opcionales para no romper el flujo sin firma (tests, rollout).
+  nonce: z.string().min(1).optional(),
+  issuedAt: isoDateTimeSchema.optional(),
+  signature: z.string().min(1).optional(),
 };
 
 /**
