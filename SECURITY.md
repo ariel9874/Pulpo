@@ -24,7 +24,7 @@ describe el modelo de amenazas y el estado de cada mitigación.
 | **Código de pairing** robado/forzado                                               | Código de un solo uso, expira en 10 min, `device_secret` de 24 bytes exigido en el `poll`                                                        | ✅            |
 | **Token del runner** robado del disco de una PC                                    | **Mínimo privilegio**: RLS acota el token por `batuta_machine_id` → solo su máquina; no ve otras máquinas, sesiones, comandos ni tokens de push  | ✅ (Etapa 21) |
 | **Cuenta de la app** comprometida → inyectan comandos que ejecutan código en tu PC | **Firma de comandos** (Ed25519): la app firma; el runner verifica con la pública que recibió al emparejar; la privada nunca sale del dispositivo | ✅            |
-| El **BaaS gestionado** (o quien lo administre) lee tus diffs                       | Cifrado e2e de payloads sensibles (diff) entre app y runner                                                                                      | ⏳ diferido   |
+| El **BaaS gestionado** (o quien lo administre) lee tus diffs                       | **Cifrado e2e** (X25519 sealed box): el runner cifra el diff hacia la clave pública de la app; el backend solo ve `ciphertext`                   | ✅            |
 | Token del runner válido **demasiado tiempo** (365 días)                            | Rotación/refresh del token del runner                                                                                                            | ⏳ diferido   |
 
 ## Checklist de seguridad
@@ -44,7 +44,9 @@ describe el modelo de amenazas y el estado de cada mitigación.
 - [x] **Firma de comandos** (Ed25519): el runner solo ejecuta comandos firmados por la
       app; anti-replay por `nonce`. La pública se ancla al emparejar y se cachea en la
       credencial del runner (no se confía en otra de la BD después).
-- [ ] Cifrado e2e de diffs.
+- [x] **Cifrado e2e de diffs** (X25519 sealed box): el runner cifra el diff hacia la
+      clave pública de la app (registrada al emparejar); solo la app lo descifra. El
+      backend nunca ve el texto claro.
 - [ ] Rotación del token del runner.
 
 ## Verificación
@@ -56,6 +58,8 @@ Tests de integración (requieren Supabase local; se saltan sin entorno):
   solo accede a su propia máquina.
 - `packages/protocol/src/signing.test.ts` + `packages/runner/src/agent-runner.test.ts`
   — firma/verificación y rechazo de comandos sin firma/alterados/replay.
+- `packages/protocol/src/encryption.test.ts` + `packages/runner/src/agent-runner.test.ts`
+  — cifrado/descifrado del diff (el ciphertext no filtra el texto; otra clave no abre).
 
 Cómo correrlos: ver [`memory/run-integration-tests.md`] (Supabase local + exportar el
 entorno de `supabase status` antes de `vitest`).
@@ -73,7 +77,20 @@ caducidad para no romper el catch-up de comandos legítimamente viejos (Etapa 20
 Una máquina emparejada **con** clave exige firma; **sin** clave (apps antiguas) no
 exige nada — rollout gradual sin romper lo existente.
 
+## Cifrado e2e de diffs: cómo y alcance
+
+La app registra también una clave de **cifrado** X25519 al emparejar. El runner cifra
+cada diff con un **sealed box** (par efímero por mensaje) hacia esa pública; solo la
+app lo descifra con su privada. El backend almacena y reenvía únicamente `ciphertext`.
+
+**Alcance honesto:** da **confidencialidad** frente al BaaS, no autenticación del
+emisor del diff (remitente anónimo). Un backend malicioso no puede _leer_ el diff,
+pero podría sustituirlo por otro; el riesgo es acotado porque el runner actúa según su
+propia decisión (lo que ejecuta no depende del diff mostrado) y los comandos van
+firmados. Autenticar también el diff requeriría intercambio bidireccional de claves
+(clave del runner conocida por la app) — queda como mejora futura.
+
 ## Lo que aún se difiere
 
-- **Cifrado e2e de los diffs**: que el BaaS no pueda leer los payloads sensibles.
+- **Autenticación del emisor del diff** (e2e mutuo, no solo confidencialidad).
 - **Rotación del token del runner**: hoy vive 365 días (mitigado por mínimo privilegio).

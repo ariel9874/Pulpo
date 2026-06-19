@@ -38,10 +38,16 @@ async function runDaemon(): Promise<void> {
     backend,
     credential.machineId,
     [new EchoAdapter(), new ClaudeCodeAdapter()],
-    credential.signerPublicKey ? { signerPublicKey: credential.signerPublicKey } : {},
+    {
+      ...(credential.signerPublicKey ? { signerPublicKey: credential.signerPublicKey } : {}),
+      ...(credential.boxPublicKey ? { recipientBoxPublicKey: credential.boxPublicKey } : {}),
+    },
   );
   if (credential.signerPublicKey) {
     console.log("🔒 Verificación de firma activada (solo ejecuto comandos firmados por tu app).");
+  }
+  if (credential.boxPublicKey) {
+    console.log("🔐 Cifrado e2e de diffs activado (el backend no los ve en claro).");
   }
   await daemon.start();
   await agents.start();

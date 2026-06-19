@@ -1,4 +1,10 @@
-import type { Artifact, Event, Session } from "@batuta/protocol";
+import {
+  openSealed,
+  type Artifact,
+  type EncryptedPayload,
+  type Event,
+  type Session,
+} from "@batuta/protocol";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
@@ -14,6 +20,7 @@ import {
 import { resolveArtifactUrl } from "../lib/artifacts";
 import { backend } from "../lib/backend";
 import { sendSignedCommand } from "../lib/commands";
+import { getBoxSecretKey } from "../lib/enc-key";
 import { appendEvents } from "../lib/events";
 import type { Palette } from "../lib/theme";
 import { useThemeContext, useThemedStyles } from "../lib/theme-context";
@@ -207,7 +214,20 @@ function PermissionView({
   onDecide: (permissionId: string, decision: "approve" | "reject") => void;
 }) {
   const styles = useThemedStyles(makeStyles);
-  const diff = event.diff?.type === "inline" ? event.diff.content : null;
+  const [diff, setDiff] = useState<string | null>(
+    event.diff?.type === "inline" ? event.diff.content : null,
+  );
+  useEffect(() => {
+    if (event.diff?.type !== "encrypted") return;
+    const payload: EncryptedPayload = event.diff;
+    let active = true;
+    void getBoxSecretKey().then((secret) => {
+      if (active) setDiff(openSealed(payload, secret) ?? "[no se pudo descifrar el diff]");
+    });
+    return () => {
+      active = false;
+    };
+  }, [event.diff]);
   return (
     <View style={styles.permission}>
       <Text style={styles.permTitle}>{`🔐 ${event.summary || event.tool}`}</Text>
