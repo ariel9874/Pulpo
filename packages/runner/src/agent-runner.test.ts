@@ -1,8 +1,28 @@
 import { MemoryBackend } from "@batuta/backend-memory";
-import { generateSigningKeyPair, signCommand } from "@batuta/protocol";
+import {
+  generateBoxKeyPair,
+  generateSigningKeyPair,
+  openSealed,
+  signCommand,
+} from "@batuta/protocol";
 import { describe, expect, it } from "vitest";
+import type { AgentAdapter, AgentSession, StartParams } from "./agent-adapter.js";
 import { EchoAdapter } from "./adapters/echo.js";
 import { AgentRunner } from "./agent-runner.js";
+
+/** Adaptador de prueba que, al arrancar, pide un permiso con un diff. */
+class PermissionAdapter implements AgentAdapter {
+  readonly agentType = "claude-code" as const;
+  constructor(private readonly diff: string) {}
+  async start(params: StartParams): Promise<AgentSession> {
+    void params.requestPermission({ tool: "Write", title: "escribe archivo", diff: this.diff });
+    return {
+      sendMessage: async () => {},
+      cancel: async () => {},
+      dispose: async () => {},
+    };
+  }
+}
 
 async function waitFor<T>(fn: () => Promise<T | undefined>, timeoutMs = 2_000): Promise<T> {
   const deadline = Date.now() + timeoutMs;
@@ -342,6 +362,66 @@ describe("AgentRunner — firma de comandos (integridad)", () => {
     await backend.sendCommand(signed); // replay: mismo nonce/firma, nuevo id
     await settle();
     expect(await backend.listSessions()).toHaveLength(1); // no creó otra sesión
+
+    await runner.stop();
+  });
+});
+
+describe("AgentRunner — cifrado e2e del diff", () => {
+  const DIFF = "- contraseña_vieja\n+ contraseña_nueva";
+
+  const findPermissionEvent = (backend: MemoryBackend, sessionId: string) =>
+    waitFor(async () =>
+      (await backend.listEvents(sessionId)).find((e) => e.type === "permission_required"),
+    );
+
+  it("cifra el diff hacia la app y esta lo descifra", async () => {
+    const backend = new MemoryBackend();
+    const machine = await backend.registerMachine({ name: "PC" });
+    const app = generateBoxKeyPair();
+    const runner = new AgentRunner(backend, machine.id, [new PermissionAdapter(DIFF)], {
+      recipientBoxPublicKey: app.publicKey,
+    });
+    await runner.start();
+
+    await backend.sendCommand({
+      type: "new_task",
+      machineId: machine.id,
+      agentType: "claude-code",
+      cwd: "/x",
+      prompt: "cambia la contraseña",
+    });
+
+    const session = await waitFor(async () => (await backend.listSessions())[0]);
+    const event = await findPermissionEvent(backend, session.id);
+    if (event.type !== "permission_required" || !event.diff) throw new Error("sin diff");
+
+    expect(event.diff.type).toBe("encrypted"); // el backend solo ve opaco
+    if (event.diff.type !== "encrypted") throw new Error("no cifrado");
+    expect(event.diff.ciphertext).not.toContain("contraseña");
+    expect(openSealed(event.diff, app.secretKey)).toBe(DIFF);
+
+    await runner.stop();
+  });
+
+  it("sin clave de cifrado, el diff viaja inline (compatibilidad)", async () => {
+    const backend = new MemoryBackend();
+    const machine = await backend.registerMachine({ name: "PC" });
+    const runner = new AgentRunner(backend, machine.id, [new PermissionAdapter(DIFF)]);
+    await runner.start();
+
+    await backend.sendCommand({
+      type: "new_task",
+      machineId: machine.id,
+      agentType: "claude-code",
+      cwd: "/x",
+      prompt: "cambia la contraseña",
+    });
+
+    const session = await waitFor(async () => (await backend.listSessions())[0]);
+    const event = await findPermissionEvent(backend, session.id);
+    if (event.type !== "permission_required" || !event.diff) throw new Error("sin diff");
+    expect(event.diff.type).toBe("inline");
 
     await runner.stop();
   });

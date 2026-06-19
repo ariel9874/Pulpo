@@ -1,10 +1,12 @@
 import {
   isTerminalSessionStatus,
+  sealToPublicKey,
   verifyCommandSignature,
   type AppendEventInput,
   type AgentType,
   type BackendPort,
   type Command,
+  type Payload,
   type Session,
   type Unsubscribe,
 } from "@batuta/protocol";
@@ -25,6 +27,12 @@ export interface AgentRunnerOptions {
    * (integridad ante cuenta/backend comprometidos). Si se omite, no hay exigencia.
    */
   signerPublicKey?: string;
+  /**
+   * Clave pública de cifrado (base64) de la app. Si se define, los diffs se
+   * cifran extremo-a-extremo hacia la app (el backend no los ve). Si se omite,
+   * los diffs viajan inline.
+   */
+  recipientBoxPublicKey?: string;
 }
 
 interface PendingPermission {
@@ -47,6 +55,7 @@ export class AgentRunner {
   private readonly onError: (err: unknown) => void;
   private readonly permissionTimeoutMs: number;
   private readonly signerPublicKey: string | undefined;
+  private readonly recipientBoxPublicKey: string | undefined;
   private unsubscribe: Unsubscribe | undefined;
 
   constructor(
@@ -59,6 +68,7 @@ export class AgentRunner {
     this.onError = options.onError ?? ((err) => console.error("agent-runner:", err));
     this.permissionTimeoutMs = options.permissionTimeoutMs ?? 5 * 60 * 1_000;
     this.signerPublicKey = options.signerPublicKey;
+    this.recipientBoxPublicKey = options.recipientBoxPublicKey;
   }
 
   /**
@@ -248,7 +258,11 @@ export class AgentRunner {
     session: Session,
     request: PermissionRequest,
   ): Promise<PermissionDecision> {
-    const diff = request.diff ? ({ type: "inline", content: request.diff } as const) : undefined;
+    const diff: Payload | undefined = request.diff
+      ? this.recipientBoxPublicKey
+        ? sealToPublicKey(request.diff, this.recipientBoxPublicKey)
+        : { type: "inline", content: request.diff }
+      : undefined;
     const permission = await this.backend.createPermission({
       sessionId: session.id,
       tool: request.tool,
