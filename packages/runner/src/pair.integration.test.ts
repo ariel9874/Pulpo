@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { PairingClient, claimPairing } from "@batuta/backend-supabase";
+import { generateSigningKeyPair } from "@batuta/protocol";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { loadCredential, saveCredential } from "./credentials.js";
 
@@ -74,6 +75,25 @@ describe.skipIf(!hasEnv)("Pairing device-code (integración — requiere Supabas
     expect(error).toBeNull();
     expect(machines).toHaveLength(1);
     expect(machines![0]).toMatchObject({ id: machineId, user_id: userId });
+  }, 30_000);
+
+  it("registra la clave pública de firma y la devuelve en la credencial", async () => {
+    const { publicKey } = generateSigningKeyPair();
+    const pairing = new PairingClient(URL!, ANON_KEY!);
+    const start = await pairing.start();
+    const credentialPromise = pairing.waitForClaim(start, { intervalMs: 200, timeoutMs: 15_000 });
+    await claimPairing(appClient, start.deviceCode, publicKey);
+    const credential = await credentialPromise;
+    expect(credential.signerPublicKey).toBe(publicKey);
+  }, 30_000);
+
+  it("sin clave pública, la credencial no la trae (compatibilidad)", async () => {
+    const pairing = new PairingClient(URL!, ANON_KEY!);
+    const start = await pairing.start();
+    const credentialPromise = pairing.waitForClaim(start, { intervalMs: 200, timeoutMs: 15_000 });
+    await claimPairing(appClient, start.deviceCode);
+    const credential = await credentialPromise;
+    expect(credential.signerPublicKey).toBeUndefined();
   }, 30_000);
 
   it("guarda y recarga la credencial en disco", async () => {

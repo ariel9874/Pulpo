@@ -34,10 +34,15 @@ async function runDaemon(): Promise<void> {
     userId: credential.userId,
   });
   const daemon = new RunnerDaemon(backend, credential.machineId);
-  const agents = new AgentRunner(backend, credential.machineId, [
-    new EchoAdapter(),
-    new ClaudeCodeAdapter(),
-  ]);
+  const agents = new AgentRunner(
+    backend,
+    credential.machineId,
+    [new EchoAdapter(), new ClaudeCodeAdapter()],
+    credential.signerPublicKey ? { signerPublicKey: credential.signerPublicKey } : {},
+  );
+  if (credential.signerPublicKey) {
+    console.log("🔒 Verificación de firma activada (solo ejecuto comandos firmados por tu app).");
+  }
   await daemon.start();
   await agents.start();
   console.log(`Runner activo (máquina ${credential.machineId}). Ctrl+C para salir.`);

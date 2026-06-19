@@ -12,12 +12,20 @@ export interface RunnerCredential {
   token: string;
   machineId: string;
   userId: string;
+  /** Clave pública (base64) que firma los comandos; el runner la usa para verificar. */
+  signerPublicKey?: string;
 }
 
 export type PairingPollResult =
   | { status: "pending" }
   | { status: "expired" }
-  | { status: "claimed"; token: string; machine_id: string; user_id: string };
+  | {
+      status: "claimed";
+      token: string;
+      machine_id: string;
+      user_id: string;
+      signer_public_key?: string | null;
+    };
 
 const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -71,6 +79,7 @@ export class PairingClient {
           token: res.token,
           machineId: res.machine_id,
           userId: res.user_id,
+          ...(res.signer_public_key ? { signerPublicKey: res.signer_public_key } : {}),
         };
       }
       if (res.status === "expired") throw new Error("El código de emparejamiento expiró");
@@ -87,8 +96,12 @@ export class PairingClient {
 export async function claimPairing(
   authedClient: SupabaseClient,
   deviceCode: string,
+  signerPublicKey?: string,
 ): Promise<{ machineId: string }> {
-  const { data, error } = await authedClient.rpc("pairing_claim", { p_code: deviceCode });
+  const { data, error } = await authedClient.rpc("pairing_claim", {
+    p_code: deviceCode,
+    ...(signerPublicKey ? { p_public_key: signerPublicKey } : {}),
+  });
   if (error) throw error;
   return { machineId: (data as { machine_id: string }).machine_id };
 }

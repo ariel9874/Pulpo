@@ -1,7 +1,7 @@
 import type { AgentType, Machine } from "@batuta/protocol";
 import { useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { backend } from "../lib/backend";
+import { sendSignedCommand } from "../lib/commands";
 import { isSpeechSupported, startDictation } from "../lib/speech";
 import type { Palette } from "../lib/theme";
 import { useThemeContext, useThemedStyles } from "../lib/theme-context";
@@ -59,7 +59,7 @@ export function NewTaskModal({
     if (!selectedMachine || !prompt.trim()) return;
     setBusy(true);
     try {
-      await backend.sendCommand({
+      await sendSignedCommand({
         type: "new_task",
         machineId: selectedMachine,
         agentType,

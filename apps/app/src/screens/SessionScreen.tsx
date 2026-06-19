@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { resolveArtifactUrl } from "../lib/artifacts";
 import { backend } from "../lib/backend";
+import { sendSignedCommand } from "../lib/commands";
 import { appendEvents } from "../lib/events";
 import type { Palette } from "../lib/theme";
 import { useThemeContext, useThemedStyles } from "../lib/theme-context";
@@ -58,18 +59,17 @@ export function SessionScreen({ session, onBack }: { session: Session; onBack: (
       next.delete(permissionId);
       return next;
     });
-    void backend.sendCommand({ type: decision, sessionId: session.id, permissionId });
+    void sendSignedCommand({ type: decision, sessionId: session.id, permissionId });
   };
 
   const send = async (): Promise<void> => {
     const text = draft.trim();
     if (!text) return;
     setDraft("");
-    await backend.sendCommand({ type: "send_message", sessionId: session.id, text });
+    await sendSignedCommand({ type: "send_message", sessionId: session.id, text });
   };
 
-  const cancelTask = (): void =>
-    void backend.sendCommand({ type: "cancel", sessionId: session.id });
+  const cancelTask = (): void => void sendSignedCommand({ type: "cancel", sessionId: session.id });
 
   if (showGallery) {
     return (
