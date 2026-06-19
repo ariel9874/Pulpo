@@ -1,4 +1,5 @@
 import { MemoryBackend } from "@batuta/backend-memory";
+import { generateSigningKeyPair, signCommand } from "@batuta/protocol";
 import { describe, expect, it } from "vitest";
 import { EchoAdapter } from "./adapters/echo.js";
 import { AgentRunner } from "./agent-runner.js";
@@ -237,5 +238,111 @@ describe("AgentRunner — reconexión y estado (Etapa 20)", () => {
     expect(sessions.find((s) => s.id === session.id)?.status).toBe("error"); // huérfana cerrada
 
     await runner2.stop();
+  });
+});
+
+describe("AgentRunner — firma de comandos (integridad)", () => {
+  const settle = () => new Promise((r) => setTimeout(r, 40));
+  const newTask = (machineId: string) => ({
+    type: "new_task" as const,
+    machineId,
+    agentType: "echo" as const,
+    cwd: "/x",
+    prompt: "hola",
+  });
+
+  it("ejecuta un new_task firmado correctamente", async () => {
+    const backend = new MemoryBackend();
+    const machine = await backend.registerMachine({ name: "PC" });
+    const { publicKey, privateKey } = generateSigningKeyPair();
+    const runner = new AgentRunner(backend, machine.id, [new EchoAdapter()], {
+      signerPublicKey: publicKey,
+    });
+    await runner.start();
+
+    await backend.sendCommand(signCommand(privateKey, newTask(machine.id)));
+
+    const session = await waitFor(async () => (await backend.listSessions())[0]);
+    await waitFor(async () =>
+      (await backend.listEvents(session.id)).find(
+        (e) => e.type === "message" && e.text === "echo: hola",
+      ),
+    );
+
+    await runner.stop();
+  });
+
+  it("rechaza un comando SIN firma cuando hay clave configurada", async () => {
+    const backend = new MemoryBackend();
+    const machine = await backend.registerMachine({ name: "PC" });
+    const { publicKey } = generateSigningKeyPair();
+    const runner = new AgentRunner(backend, machine.id, [new EchoAdapter()], {
+      signerPublicKey: publicKey,
+      onError: () => {}, // se espera un error de rechazo
+    });
+    await runner.start();
+
+    await backend.sendCommand(newTask(machine.id));
+    await settle();
+    expect(await backend.listSessions()).toHaveLength(0);
+
+    await runner.stop();
+  });
+
+  it("rechaza un comando firmado por OTRA clave", async () => {
+    const backend = new MemoryBackend();
+    const machine = await backend.registerMachine({ name: "PC" });
+    const { publicKey } = generateSigningKeyPair();
+    const intruso = generateSigningKeyPair();
+    const runner = new AgentRunner(backend, machine.id, [new EchoAdapter()], {
+      signerPublicKey: publicKey,
+      onError: () => {},
+    });
+    await runner.start();
+
+    await backend.sendCommand(signCommand(intruso.privateKey, newTask(machine.id)));
+    await settle();
+    expect(await backend.listSessions()).toHaveLength(0);
+
+    await runner.stop();
+  });
+
+  it("rechaza un comando alterado tras firmarlo", async () => {
+    const backend = new MemoryBackend();
+    const machine = await backend.registerMachine({ name: "PC" });
+    const { publicKey, privateKey } = generateSigningKeyPair();
+    const runner = new AgentRunner(backend, machine.id, [new EchoAdapter()], {
+      signerPublicKey: publicKey,
+      onError: () => {},
+    });
+    await runner.start();
+
+    const signed = signCommand(privateKey, newTask(machine.id));
+    await backend.sendCommand({ ...signed, prompt: "rm -rf /" }); // manipulado
+    await settle();
+    expect(await backend.listSessions()).toHaveLength(0);
+
+    await runner.stop();
+  });
+
+  it("rechaza un replay (mismo nonce, otro id de comando)", async () => {
+    const backend = new MemoryBackend();
+    const machine = await backend.registerMachine({ name: "PC" });
+    const { publicKey, privateKey } = generateSigningKeyPair();
+    const runner = new AgentRunner(backend, machine.id, [new EchoAdapter()], {
+      signerPublicKey: publicKey,
+      onError: () => {},
+    });
+    await runner.start();
+
+    const signed = signCommand(privateKey, newTask(machine.id));
+    await backend.sendCommand(signed); // legítimo
+    await waitFor(async () => (await backend.listSessions())[0]);
+
+    await backend.sendCommand(signed); // replay: mismo nonce/firma, nuevo id
+    await settle();
+    expect(await backend.listSessions()).toHaveLength(1); // no creó otra sesión
+
+    await runner.stop();
   });
 });

@@ -1,5 +1,6 @@
 import {
   isTerminalSessionStatus,
+  verifyCommandSignature,
   type AppendEventInput,
   type AgentType,
   type BackendPort,
@@ -18,6 +19,12 @@ export interface AgentRunnerOptions {
   onError?: (err: unknown) => void;
   /** Tiempo máximo de espera de una decisión de permiso (ms). Por defecto 5 min. */
   permissionTimeoutMs?: number;
+  /**
+   * Clave pública (base64) que firma los comandos de confianza. Si se define, el
+   * runner EXIGE firma válida en cada comando y rechaza los no firmados/alterados
+   * (integridad ante cuenta/backend comprometidos). Si se omite, no hay exigencia.
+   */
+  signerPublicKey?: string;
 }
 
 interface PendingPermission {
@@ -36,8 +43,10 @@ export class AgentRunner {
   private readonly sessions = new Map<string, AgentSession>();
   private readonly pendingPermissions = new Map<string, PendingPermission>();
   private readonly processedCommands = new Set<string>();
+  private readonly seenNonces = new Set<string>();
   private readonly onError: (err: unknown) => void;
   private readonly permissionTimeoutMs: number;
+  private readonly signerPublicKey: string | undefined;
   private unsubscribe: Unsubscribe | undefined;
 
   constructor(
@@ -49,6 +58,7 @@ export class AgentRunner {
     for (const adapter of adapters) this.adapters.set(adapter.agentType, adapter);
     this.onError = options.onError ?? ((err) => console.error("agent-runner:", err));
     this.permissionTimeoutMs = options.permissionTimeoutMs ?? 5 * 60 * 1_000;
+    this.signerPublicKey = options.signerPublicKey;
   }
 
   /**
@@ -142,10 +152,32 @@ export class AgentRunner {
     this.sessions.clear();
   }
 
+  /**
+   * ¿Aceptamos ejecutar este comando? Si hay clave de firma configurada, exige
+   * firma válida y rechaza nonces repetidos (replay). Sin clave, acepta todo
+   * (compatibilidad). Un comando rechazado se marca consumido y se descarta.
+   */
+  private accept(command: Command): boolean {
+    if (!this.signerPublicKey) return true;
+    if (!verifyCommandSignature(this.signerPublicKey, command)) {
+      this.onError(new Error(`Comando ${command.id} rechazado: firma inválida o ausente`));
+      return false;
+    }
+    if (command.nonce !== undefined) {
+      if (this.seenNonces.has(command.nonce)) {
+        this.onError(new Error(`Comando ${command.id} rechazado: nonce repetido (replay)`));
+        return false;
+      }
+      this.seenNonces.add(command.nonce);
+    }
+    return true;
+  }
+
   private async handle(command: Command): Promise<void> {
     if (this.processedCommands.has(command.id)) return; // dedup (catch-up + realtime)
     this.processedCommands.add(command.id);
     try {
+      if (!this.accept(command)) return;
       await this.dispatch(command);
     } catch (err) {
       this.onError(err);
