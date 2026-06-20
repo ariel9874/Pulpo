@@ -125,10 +125,15 @@ export class SdkClaudeTransport implements ClaudeTransport {
             }
           }
         } else if (message.type === "result") {
+          // El uso de la tarea + (si hay suscripción) la cuota restante del plan.
+          // La cuota se pide aquí, con la sesión aún viva, no tras cerrar el stream.
+          const summary = [formatUsage(message), await fetchPlanUsage(stream)]
+            .filter(Boolean)
+            .join(" · ");
           yield {
             kind: "result",
             outcome: message.subtype === "success" ? "completed" : "failed",
-            ...(formatUsage(message) ? { summary: formatUsage(message) } : {}),
+            ...(summary ? { summary } : {}),
           };
         }
       }
@@ -136,6 +141,54 @@ export class SdkClaudeTransport implements ClaudeTransport {
       options.signal.removeEventListener("abort", onAbort);
     }
   }
+}
+
+/** Ventana de límite de uso del plan (porción que se ha consumido). */
+interface SdkRateWindow {
+  utilization?: number | null;
+}
+/** Respuesta (parcial) de la API experimental de uso del Agent SDK. */
+interface SdkUsageResponse {
+  rate_limits_available?: boolean;
+  rate_limits?: {
+    five_hour?: SdkRateWindow | null;
+    seven_day?: SdkRateWindow | null;
+    seven_day_opus?: SdkRateWindow | null;
+  } | null;
+}
+
+/**
+ * Cuota restante del plan claude.ai (experimental; solo en sesiones con
+ * suscripción). Feature-detect + try/catch + timeout: nunca rompe ni demora la
+ * tarea. Devuelve algo como `plan libre · 5h 58% · 7d 82%`.
+ */
+async function fetchPlanUsage(stream: unknown): Promise<string | undefined> {
+  const fn = (stream as Record<string, unknown>)
+    .usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET;
+  if (typeof fn !== "function") return undefined;
+  try {
+    const call = (fn as () => Promise<SdkUsageResponse>).call(stream);
+    const timeout = new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 3000));
+    const usage = await Promise.race([call, timeout]);
+    return usage ? formatPlan(usage) : undefined;
+  } catch {
+    return undefined; // API experimental: si cambia o falla, lo ignoramos.
+  }
+}
+
+function formatPlan(u: SdkUsageResponse): string | undefined {
+  if (!u.rate_limits_available || !u.rate_limits) return undefined;
+  const w = u.rate_limits;
+  const free = (win: SdkRateWindow | null | undefined): number | undefined =>
+    typeof win?.utilization === "number" ? Math.max(0, Math.round(100 - win.utilization)) : undefined;
+  const parts: string[] = [];
+  const h5 = free(w.five_hour);
+  const d7 = free(w.seven_day);
+  const d7opus = free(w.seven_day_opus);
+  if (h5 !== undefined) parts.push(`5h ${h5}%`);
+  if (d7 !== undefined) parts.push(`7d ${d7}%`);
+  if (d7opus !== undefined) parts.push(`7d-opus ${d7opus}%`);
+  return parts.length > 0 ? `plan libre · ${parts.join(" · ")}` : undefined;
 }
 
 /** Resumen legible del uso de la tarea: modelo real, tokens, coste y turnos. */
