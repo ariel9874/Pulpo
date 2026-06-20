@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { AgentEvent } from "../../agent-adapter.js";
 import { AgentRunner } from "../../agent-runner.js";
 import { AntigravityAdapter } from "./index.js";
-import { mapCliLine } from "./cli-transport.js";
+import { AgyCliTransport, mapCliLine } from "./cli-transport.js";
 import type {
   AntigravityMessage,
   AntigravityRunOptions,
@@ -151,6 +151,27 @@ describe("AntigravityAdapter (transporte simulado)", () => {
       return s?.status === "cancelled" ? s : undefined;
     });
     await runner.stop();
+  });
+});
+
+describe("AgyCliTransport — robustez", () => {
+  it("si el CLI no existe (ENOENT) emite error, no tumba el proceso", async () => {
+    const transport = new AgyCliTransport({ bin: "agy-binario-inexistente-xyz" });
+    async function* input(): AsyncIterable<string> {
+      yield "hola";
+    }
+    const messages: AntigravityMessage[] = [];
+    for await (const m of transport.run({
+      input: input(),
+      cwd: process.cwd(),
+      signal: new AbortController().signal,
+      requestPermission: async () => "deny",
+    })) {
+      messages.push(m);
+    }
+    const error = messages.find((m) => m.kind === "error");
+    expect(error).toBeDefined();
+    if (error?.kind === "error") expect(error.message).toContain("agy-binario-inexistente-xyz");
   });
 });
 

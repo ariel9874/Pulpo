@@ -56,6 +56,16 @@ export class AgyCliTransport implements AntigravityTransport {
     const onAbort = (): void => void child.kill();
     options.signal.addEventListener("abort", onAbort);
 
+    // El proceso termina por 'close' (salió) o 'error' (no se pudo lanzar, p. ej.
+    // ENOENT si `agy` no está instalado). Escuchar 'error' es CRÍTICO: sin un
+    // listener, Node lanza el evento como excepción no manejada y tumba el runner.
+    const done = new Promise<{ code: number | null; error: NodeJS.ErrnoException | null }>(
+      (resolve) => {
+        child.on("error", (error) => resolve({ code: null, error }));
+        child.on("close", (code) => resolve({ code, error: null }));
+      },
+    );
+
     let stderr = "";
     child.stderr.setEncoding("utf8");
     child.stderr.on("data", (chunk: string) => (stderr += chunk));
@@ -69,16 +79,24 @@ export class AgyCliTransport implements AntigravityTransport {
         if (message.kind === "result") sawResult = true;
         yield message;
       }
-      const code = await new Promise<number>((resolve) =>
-        child.on("close", (c) => resolve(c ?? 0)),
-      );
-      if (!sawResult && code !== 0 && !options.signal.aborted) {
+      const { code, error } = await done;
+      if (error) {
+        yield { kind: "error", message: spawnErrorMessage(bin, error) };
+      } else if (!sawResult && code !== 0 && !options.signal.aborted) {
         yield { kind: "error", message: stderr.trim() || `agy salió con código ${code}` };
       }
     } finally {
       options.signal.removeEventListener("abort", onAbort);
     }
   }
+}
+
+/** Mensaje claro cuando no se pudo lanzar el CLI (típicamente, no está instalado). */
+function spawnErrorMessage(bin: string, error: NodeJS.ErrnoException): string {
+  if (error.code === "ENOENT") {
+    return `No se encontró el CLI de Antigravity ("${bin}"). Instálalo (o usa el agente claude-code); el agente "antigravity" no está disponible en esta PC.`;
+  }
+  return `No se pudo lanzar "${bin}": ${error.message}`;
 }
 
 interface CliEvent {

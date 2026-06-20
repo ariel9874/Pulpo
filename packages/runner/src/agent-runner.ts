@@ -240,7 +240,10 @@ export class AgentRunner {
       }
       case "send_message": {
         const session = this.sessions.get(command.sessionId);
-        if (!session) throw new Error(`Sesión desconocida: ${command.sessionId}`);
+        // Sesión sin agente vivo (p. ej. el runner se reinició): no hay a quién
+        // entregarle el mensaje. Se ignora en silencio (la sesión ya quedó
+        // cerrada en la reconciliación de arranque).
+        if (!session) return;
         // Refleja el mensaje del usuario en el hilo antes de pasarlo al agente.
         await this.backend.appendEvent({
           sessionId: command.sessionId,
