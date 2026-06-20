@@ -226,11 +226,28 @@ export class AgentRunner {
           requestPermission: (request) => this.requestPermission(session, request),
         });
         this.sessions.set(session.id, agentSession);
+        // Refleja el prompt del usuario en el hilo. Se emite tras registrar la
+        // sesión (para no abrir una ventana de carrera con un cancel inmediato);
+        // los agentes reales responden de forma asíncrona, así que tu mensaje
+        // aparece igualmente primero.
+        await this.backend.appendEvent({
+          sessionId: session.id,
+          type: "message",
+          role: "user",
+          text: command.prompt,
+        });
         break;
       }
       case "send_message": {
         const session = this.sessions.get(command.sessionId);
         if (!session) throw new Error(`Sesión desconocida: ${command.sessionId}`);
+        // Refleja el mensaje del usuario en el hilo antes de pasarlo al agente.
+        await this.backend.appendEvent({
+          sessionId: command.sessionId,
+          type: "message",
+          role: "user",
+          text: command.text,
+        });
         await session.sendMessage(command.text);
         break;
       }

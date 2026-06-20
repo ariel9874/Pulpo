@@ -157,7 +157,7 @@ export function SessionScreen({ session, onBack }: { session: Session; onBack: (
 function EventRow({ event }: { event: Event }) {
   switch (event.type) {
     case "message":
-      return <Bubble label={event.role} text={event.text} />;
+      return <Bubble role={event.role} text={event.text} />;
     case "thought":
       return <Line muted>{`💭 ${event.text}`}</Line>;
     case "tool_call":
@@ -277,12 +277,19 @@ function Line({ children, muted, warn }: { children: ReactNode; muted?: boolean;
   );
 }
 
-function Bubble({ label, text }: { label: string; text: string }) {
+const ROLE_LABEL: Record<"agent" | "user" | "system", string> = {
+  agent: "Agente",
+  user: "Tú",
+  system: "Sistema",
+};
+
+function Bubble({ role, text }: { role: "agent" | "user" | "system"; text: string }) {
   const styles = useThemedStyles(makeStyles);
+  const mine = role === "user";
   return (
-    <View style={styles.bubble}>
-      <Text style={styles.bubbleLabel}>{label}</Text>
-      <Text style={styles.bubbleText}>{text}</Text>
+    <View style={[styles.bubble, mine && styles.bubbleUser]}>
+      <Text style={[styles.bubbleLabel, mine && styles.bubbleOnPrimary]}>{ROLE_LABEL[role]}</Text>
+      <Text style={[styles.bubbleText, mine && styles.bubbleOnPrimary]}>{text}</Text>
     </View>
   );
 }
@@ -307,7 +314,16 @@ const makeStyles = (p: Palette) =>
     muted: { color: p.muted },
     warn: { color: "#ef4444" },
     line: { fontSize: 14, color: p.text },
-    bubble: { backgroundColor: p.badgeBg, borderRadius: 10, padding: 12, gap: 2 },
+    bubble: {
+      backgroundColor: p.badgeBg,
+      borderRadius: 10,
+      padding: 12,
+      gap: 2,
+      alignSelf: "flex-start",
+      maxWidth: "88%",
+    },
+    bubbleUser: { alignSelf: "flex-end", backgroundColor: p.primary },
+    bubbleOnPrimary: { color: p.primaryText },
     bubbleLabel: { fontSize: 11, color: p.muted, textTransform: "uppercase" },
     bubbleText: { fontSize: 15, color: p.text },
     card: { borderWidth: 1, borderColor: p.border, borderRadius: 10, padding: 12, gap: 8 },
