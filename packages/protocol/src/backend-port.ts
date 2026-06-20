@@ -31,6 +31,8 @@ export interface BackendPort {
   createSession(input: CreateSessionInput): Promise<Session>; // runner
   updateSession(id: string, patch: UpdateSessionInput): Promise<Session>; // runner
   listSessions(): Promise<Session[]>; // app
+  /** Borra una sesión y, en cascada (FK), sus eventos/comandos/permisos. */
+  deleteSession(id: string): Promise<void>; // app
   /** Cambios en sesiones (creación/estado) en vivo. */
   subscribeSessions(
     handler: (session: Session) => void,

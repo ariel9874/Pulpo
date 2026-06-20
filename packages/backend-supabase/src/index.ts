@@ -157,6 +157,14 @@ export class SupabaseBackend implements BackendPort {
     return (data ?? []).map((r) => rowToSession(r as Row));
   }
 
+  async deleteSession(id: string): Promise<void> {
+    // events/commands/permissions cuelgan de sessions con ON DELETE CASCADE,
+    // así que esta única baja arrastra todo el hilo. RLS (sessions_own) ya
+    // exige user_id = auth.uid(), de modo que solo borras lo tuyo.
+    const { error } = await this.client.from("sessions").delete().eq("id", id);
+    if (error) throw error;
+  }
+
   subscribeSessions(
     handler: (session: Session) => void,
     onStatus?: SubscriptionStatusHandler,

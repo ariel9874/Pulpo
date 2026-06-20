@@ -12,6 +12,7 @@ import {
   FlatList,
   Image,
   Linking,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -99,6 +100,21 @@ export function SessionScreen({ session, onBack }: { session: Session; onBack: (
 
   const cancelTask = (): void => void sendSignedCommand({ type: "cancel", sessionId: session.id });
 
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const doDelete = async (): Promise<void> => {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await backend.deleteSession(session.id);
+      onBack();
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : "No se pudo borrar la conversación.");
+      setDeleting(false);
+    }
+  };
+
   if (showGallery) {
     return (
       <GalleryScreen
@@ -120,6 +136,9 @@ export function SessionScreen({ session, onBack }: { session: Session; onBack: (
         </Text>
         <Pressable onPress={() => setShowGallery(true)} style={styles.gallery}>
           <Text style={styles.galleryText}>🖼 Galería</Text>
+        </Pressable>
+        <Pressable onPress={() => setConfirmDelete(true)} style={styles.deleteBtn} hitSlop={6}>
+          <Text style={styles.deleteText}>🗑</Text>
         </Pressable>
       </View>
       {loading ? (
@@ -173,6 +192,39 @@ export function SessionScreen({ session, onBack }: { session: Session; onBack: (
           <Text style={styles.sendText}>Enviar</Text>
         </Pressable>
       </View>
+
+      <Modal
+        visible={confirmDelete}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConfirmDelete(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>¿Borrar esta conversación?</Text>
+            <Text style={styles.modalBody}>
+              Se eliminará de Supabase junto con todos sus mensajes. No se puede deshacer.
+            </Text>
+            {deleteError ? <Text style={styles.modalError}>{deleteError}</Text> : null}
+            <View style={styles.modalActions}>
+              <Pressable
+                onPress={() => setConfirmDelete(false)}
+                disabled={deleting}
+                style={styles.modalCancel}
+              >
+                <Text style={styles.modalCancelText}>Cancelar</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => void doDelete()}
+                disabled={deleting}
+                style={[styles.modalDelete, deleting && styles.sendDisabled]}
+              >
+                <Text style={styles.modalDeleteText}>{deleting ? "Borrando…" : "Borrar"}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -390,6 +442,8 @@ const makeStyles = (p: Palette) =>
     title: { fontSize: 20, fontWeight: "700", flexShrink: 1, color: p.text },
     gallery: { marginLeft: "auto", paddingHorizontal: 8, paddingVertical: 6 },
     galleryText: { color: p.primary, fontWeight: "600" },
+    deleteBtn: { paddingHorizontal: 6, paddingVertical: 6 },
+    deleteText: { fontSize: 16 },
     center: { flex: 1, alignItems: "center", justifyContent: "center" },
     list: { paddingHorizontal: 16, paddingBottom: 24, gap: 8 },
     muted: { color: p.muted },
@@ -476,4 +530,32 @@ const makeStyles = (p: Palette) =>
     },
     sendDisabled: { opacity: 0.5 },
     sendText: { color: p.primaryText, fontWeight: "700" },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.5)",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 24,
+    },
+    modalCard: {
+      width: "100%",
+      maxWidth: 360,
+      backgroundColor: p.card,
+      borderRadius: 14,
+      padding: 20,
+      gap: 10,
+    },
+    modalTitle: { fontSize: 17, fontWeight: "700", color: p.text },
+    modalBody: { fontSize: 14, color: p.muted, lineHeight: 20 },
+    modalError: { fontSize: 13, color: "#ef4444" },
+    modalActions: { flexDirection: "row", justifyContent: "flex-end", gap: 8, marginTop: 6 },
+    modalCancel: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8 },
+    modalCancelText: { color: p.text, fontWeight: "600" },
+    modalDelete: {
+      backgroundColor: "#dc2626",
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 8,
+    },
+    modalDeleteText: { color: "white", fontWeight: "700" },
   });

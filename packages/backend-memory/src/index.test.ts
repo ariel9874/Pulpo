@@ -57,6 +57,29 @@ describe("MemoryBackend — sesiones y eventos", () => {
     expect(await backend.listEvents(session.id)).toHaveLength(1);
   });
 
+  it("deleteSession borra la sesión y, en cascada, sus eventos/comandos/permisos", async () => {
+    const backend = new MemoryBackend();
+    const { machine, session } = await seededSession(backend);
+    await backend.appendEvent({ sessionId: session.id, type: "thought", text: "x" });
+    await backend.sendCommand({ type: "send_message", sessionId: session.id, text: "hola" });
+    await backend.createPermission({ sessionId: session.id, tool: "fs", summary: "edita" });
+
+    // Una segunda sesión que NO debe verse afectada por el borrado.
+    const other = await backend.createSession({
+      machineId: machine.id,
+      agentType: "echo",
+      title: "Otra",
+      cwd: "/otra",
+    });
+
+    await backend.deleteSession(session.id);
+
+    expect(await backend.listSessions()).toEqual([other]);
+    expect(await backend.listEvents(session.id)).toHaveLength(0);
+    expect(await backend.listPendingCommands(machine.id)).toHaveLength(0);
+    expect(await backend.listPendingPermissions(session.id)).toHaveLength(0);
+  });
+
   it("notifica cambios de sesión por subscribeSessions", async () => {
     const backend = new MemoryBackend();
     const machine = await backend.registerMachine({ name: "PC" });

@@ -139,6 +139,21 @@ export class MemoryBackend implements BackendPort {
     return [...this.sessions.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 
+  async deleteSession(id: string): Promise<void> {
+    // Imita el ON DELETE CASCADE de la BD: la sesión y todo lo que cuelga de ella.
+    this.sessions.delete(id);
+    this.eventsBySession.delete(id);
+    for (const [cid, command] of this.commandsById) {
+      if ("sessionId" in command && command.sessionId === id) {
+        this.commandsById.delete(cid);
+        this.consumedCommands.delete(cid);
+      }
+    }
+    for (const [pid, permission] of this.permissions) {
+      if (permission.sessionId === id) this.permissions.delete(pid);
+    }
+  }
+
   subscribeSessions(
     handler: (session: Session) => void,
     onStatus?: SubscriptionStatusHandler,
