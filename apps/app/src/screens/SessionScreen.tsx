@@ -306,6 +306,9 @@ const ROLE_LABEL: Record<"agent" | "user" | "system", string> = {
   system: "Sistema",
 };
 
+/** Altura máxima (px) de una respuesta antes de recortarla con "Ver más". */
+const COLLAPSED_MAX = 360;
+
 function formatTime(ts: string): string {
   const d = new Date(ts);
   if (Number.isNaN(d.getTime())) return "";
@@ -330,6 +333,13 @@ function Bubble({
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }, [text]);
+
+  // Colapso: las respuestas muy largas se recortan a una altura máxima y se
+  // expanden con "Ver más". Medimos la altura natural del contenido (overflow
+  // hidden recorta el pintado, no el layout) para decidir si mostrar el toggle.
+  const [expanded, setExpanded] = useState(false);
+  const [contentHeight, setContentHeight] = useState<number | null>(null);
+  const canCollapse = contentHeight !== null && contentHeight > COLLAPSED_MAX;
   return (
     <View style={[styles.bubble, mine && styles.bubbleUser]}>
       <View style={styles.bubbleHeader}>
@@ -348,7 +358,18 @@ function Bubble({
           {text}
         </Text>
       ) : (
-        <MarkdownMessage text={text} palette={palette} />
+        <>
+          <View style={[styles.collapsible, !expanded && { maxHeight: COLLAPSED_MAX }]}>
+            <View onLayout={(e) => setContentHeight(e.nativeEvent.layout.height)}>
+              <MarkdownMessage text={text} palette={palette} />
+            </View>
+          </View>
+          {canCollapse ? (
+            <Pressable onPress={() => setExpanded((v) => !v)} hitSlop={6} style={styles.moreBtn}>
+              <Text style={styles.moreText}>{expanded ? "Ver menos ▲" : "Ver más ▼"}</Text>
+            </Pressable>
+          ) : null}
+        </>
       )}
     </View>
   );
@@ -396,6 +417,9 @@ const makeStyles = (p: Palette) =>
     bubbleTime: { fontSize: 11, color: p.muted, opacity: 0.8 },
     copyBtn: { paddingVertical: 2 },
     copyText: { fontSize: 11, color: p.muted, fontWeight: "600" },
+    collapsible: { overflow: "hidden" },
+    moreBtn: { alignSelf: "flex-start", marginTop: 6, paddingVertical: 2 },
+    moreText: { fontSize: 13, color: p.primary, fontWeight: "600" },
     bubbleText: { fontSize: 15, color: p.text },
     card: { borderWidth: 1, borderColor: p.border, borderRadius: 10, padding: 12, gap: 8 },
     cardTitle: { fontWeight: "600", color: p.text },
