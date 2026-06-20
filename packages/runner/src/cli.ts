@@ -41,6 +41,9 @@ async function runDaemon(): Promise<void> {
     {
       ...(credential.signerPublicKey ? { signerPublicKey: credential.signerPublicKey } : {}),
       ...(credential.boxPublicKey ? { recipientBoxPublicKey: credential.boxPublicKey } : {}),
+      ...(credential.senderBoxSecretKey
+        ? { senderBoxSecretKey: credential.senderBoxSecretKey }
+        : {}),
     },
   );
   if (credential.signerPublicKey) {

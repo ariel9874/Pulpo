@@ -1,6 +1,7 @@
 import { claimPairing } from "@batuta/backend-supabase";
 import { normalizeDeviceCode } from "./device-code";
 import { getBoxPublicKey } from "./enc-key";
+import { setRunnerBoxPublic } from "./runner-keys";
 import { getSigningPublicKey } from "./signing-key";
 import { supabase } from "./supabase";
 
@@ -10,7 +11,8 @@ export { normalizeDeviceCode };
  * Reclama un código de emparejamiento como el usuario autenticado (crea la
  * máquina) y registra las claves públicas de este dispositivo: la de FIRMA (el
  * runner solo acepta comandos firmados por esta app) y la de CIFRADO (el runner
- * cifra los diffs hacia ella; el backend no los ve en claro).
+ * cifra los diffs hacia ella). Además ancla la clave de cifrado del runner para
+ * autenticar los diffs (e2e mutuo).
  */
 export async function claimDevice(rawCode: string): Promise<{ machineId: string }> {
   const code = normalizeDeviceCode(rawCode);
@@ -19,5 +21,12 @@ export async function claimDevice(rawCode: string): Promise<{ machineId: string 
     getSigningPublicKey(),
     getBoxPublicKey(),
   ]);
-  return claimPairing(supabase, code, signerPublicKey, boxPublicKey);
+  const { machineId, runnerBoxPublicKey } = await claimPairing(
+    supabase,
+    code,
+    signerPublicKey,
+    boxPublicKey,
+  );
+  if (runnerBoxPublicKey) await setRunnerBoxPublic(machineId, runnerBoxPublicKey);
+  return { machineId };
 }

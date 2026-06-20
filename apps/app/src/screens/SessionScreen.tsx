@@ -1,4 +1,5 @@
 import {
+  boxOpen,
   openSealed,
   type Artifact,
   type EncryptedPayload,
@@ -22,6 +23,7 @@ import { backend } from "../lib/backend";
 import { sendSignedCommand } from "../lib/commands";
 import { getBoxSecretKey } from "../lib/enc-key";
 import { appendEvents } from "../lib/events";
+import { getRunnerBoxPublic } from "../lib/runner-keys";
 import type { Palette } from "../lib/theme";
 import { useThemeContext, useThemedStyles } from "../lib/theme-context";
 import { GalleryScreen } from "./GalleryScreen";
@@ -119,6 +121,7 @@ export function SessionScreen({ session, onBack }: { session: Session; onBack: (
                 event={item}
                 isPending={pending.has(item.permissionId)}
                 onDecide={decide}
+                machineId={session.machineId}
               />
             ) : (
               <EventRow event={item} />
@@ -208,10 +211,12 @@ function PermissionView({
   event,
   isPending,
   onDecide,
+  machineId,
 }: {
   event: Extract<Event, { type: "permission_required" }>;
   isPending: boolean;
   onDecide: (permissionId: string, decision: "approve" | "reject") => void;
+  machineId: string;
 }) {
   const styles = useThemedStyles(makeStyles);
   const [diff, setDiff] = useState<string | null>(
@@ -221,13 +226,22 @@ function PermissionView({
     if (event.diff?.type !== "encrypted") return;
     const payload: EncryptedPayload = event.diff;
     let active = true;
-    void getBoxSecretKey().then((secret) => {
-      if (active) setDiff(openSealed(payload, secret) ?? "[no se pudo descifrar el diff]");
-    });
+    void (async () => {
+      const secret = await getBoxSecretKey();
+      let text: string | null;
+      if (payload.alg === "nacl-box") {
+        // Autenticado: verifica que vino del runner anclado al emparejar.
+        const senderPublic = await getRunnerBoxPublic(machineId);
+        text = senderPublic ? boxOpen(payload, senderPublic, secret) : null;
+      } else {
+        text = openSealed(payload, secret);
+      }
+      if (active) setDiff(text ?? "[no se pudo descifrar/autenticar el diff]");
+    })();
     return () => {
       active = false;
     };
-  }, [event.diff]);
+  }, [event.diff, machineId]);
   return (
     <View style={styles.permission}>
       <Text style={styles.permTitle}>{`🔐 ${event.summary || event.tool}`}</Text>

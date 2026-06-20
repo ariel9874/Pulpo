@@ -109,6 +109,20 @@ describe.skipIf(!hasEnv)("Pairing device-code (integración — requiere Supabas
     expect(credential.boxPublicKey).toBe(box.publicKey);
   }, 30_000);
 
+  it("intercambia las claves de cifrado en ambos sentidos (e2e mutuo)", async () => {
+    const box = generateBoxKeyPair();
+    const pairing = new PairingClient(URL!, ANON_KEY!);
+    const start = await pairing.start();
+    const credentialPromise = pairing.waitForClaim(start, { intervalMs: 200, timeoutMs: 15_000 });
+    const claim = await claimPairing(appClient, start.deviceCode, undefined, box.publicKey);
+    const credential = await credentialPromise;
+    // La app recibe la pública del runner (para autenticar diffs)…
+    expect(claim.runnerBoxPublicKey).toBeTruthy();
+    // …y el runner recibe la pública de la app + conserva su propia privada.
+    expect(credential.boxPublicKey).toBe(box.publicKey);
+    expect(credential.senderBoxSecretKey).toBeTruthy();
+  }, 30_000);
+
   it("guarda y recarga la credencial en disco", async () => {
     const pairing = new PairingClient(URL!, ANON_KEY!);
     const start = await pairing.start();

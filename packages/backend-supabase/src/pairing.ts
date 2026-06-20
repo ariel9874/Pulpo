@@ -1,3 +1,4 @@
+import { generateBoxKeyPair } from "@batuta/protocol";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 export interface PairingStart {
@@ -16,6 +17,8 @@ export interface RunnerCredential {
   signerPublicKey?: string;
   /** Clave pública de cifrado (base64) de la app; el runner cifra los diffs hacia ella. */
   boxPublicKey?: string;
+  /** Clave PRIVADA de cifrado del runner (base64); con ella firma/cifra los diffs (e2e mutuo). */
+  senderBoxSecretKey?: string;
 }
 
 export type PairingPollResult =
@@ -39,6 +42,8 @@ const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout
  */
 export class PairingClient {
   private readonly client: SupabaseClient;
+  /** Par de cifrado del runner, generado en `start` y entregado en la credencial. */
+  private boxKeyPair: { publicKey: string; secretKey: string } | undefined;
 
   constructor(
     private readonly url: string,
@@ -50,7 +55,10 @@ export class PairingClient {
   }
 
   async start(): Promise<PairingStart> {
-    const { data, error } = await this.client.rpc("pairing_start");
+    this.boxKeyPair = generateBoxKeyPair();
+    const { data, error } = await this.client.rpc("pairing_start", {
+      p_runner_box_public: this.boxKeyPair.publicKey,
+    });
     if (error) throw error;
     const d = data as { device_code: string; device_secret: string };
     return { deviceCode: d.device_code, deviceSecret: d.device_secret };
@@ -84,6 +92,7 @@ export class PairingClient {
           userId: res.user_id,
           ...(res.signer_public_key ? { signerPublicKey: res.signer_public_key } : {}),
           ...(res.box_public_key ? { boxPublicKey: res.box_public_key } : {}),
+          ...(this.boxKeyPair ? { senderBoxSecretKey: this.boxKeyPair.secretKey } : {}),
         };
       }
       if (res.status === "expired") throw new Error("El código de emparejamiento expiró");
@@ -102,12 +111,16 @@ export async function claimPairing(
   deviceCode: string,
   signerPublicKey?: string,
   boxPublicKey?: string,
-): Promise<{ machineId: string }> {
+): Promise<{ machineId: string; runnerBoxPublicKey?: string }> {
   const { data, error } = await authedClient.rpc("pairing_claim", {
     p_code: deviceCode,
     ...(signerPublicKey ? { p_public_key: signerPublicKey } : {}),
     ...(boxPublicKey ? { p_box_public: boxPublicKey } : {}),
   });
   if (error) throw error;
-  return { machineId: (data as { machine_id: string }).machine_id };
+  const row = data as { machine_id: string; runner_box_public_key?: string | null };
+  return {
+    machineId: row.machine_id,
+    ...(row.runner_box_public_key ? { runnerBoxPublicKey: row.runner_box_public_key } : {}),
+  };
 }
