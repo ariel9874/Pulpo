@@ -21,6 +21,14 @@ export const agentTypeSchema = z.enum(["echo", "claude-code", "antigravity", "co
 export type AgentType = z.infer<typeof agentTypeSchema>;
 
 /**
+ * Nivel de razonamiento (effort) del agente. Lo elige la app por tarea; el runner
+ * lo pasa al SDK. El SDK degrada en silencio a un nivel soportado si el modelo
+ * elegido no admite el pedido, así que cualquier valor es seguro.
+ */
+export const effortLevelSchema = z.enum(["low", "medium", "high", "xhigh", "max"]);
+export type EffortLevel = z.infer<typeof effortLevelSchema>;
+
+/**
  * Payload que puede viajar inline (si es chico) o por referencia a Supabase Storage
  * (diffs y salidas grandes). Mantiene el stream Realtime ligero.
  */

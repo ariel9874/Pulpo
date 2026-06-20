@@ -113,6 +113,8 @@ export class MemoryBackend implements BackendPort {
       title: input.title,
       status: input.status ?? "starting",
       cwd: input.cwd,
+      ...(input.model ? { model: input.model } : {}),
+      ...(input.effort ? { effort: input.effort } : {}),
       createdAt: now,
       updatedAt: now,
     });

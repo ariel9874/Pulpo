@@ -121,6 +121,10 @@ export interface CreateSessionInput {
   cwd: string;
   /** Por defecto `"starting"`. */
   status?: SessionStatus;
+  /** Modelo elegido (alias o ID). Solo aplica a agentes Claude. */
+  model?: Session["model"];
+  /** Nivel de razonamiento elegido. */
+  effort?: Session["effort"];
 }
 
 export type UpdateSessionInput = Partial<Pick<Session, "title" | "status">>;

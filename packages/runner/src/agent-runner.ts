@@ -216,6 +216,8 @@ export class AgentRunner {
           title: command.title ?? command.prompt.slice(0, 60),
           cwd: command.cwd,
           status: "running",
+          ...(command.model ? { model: command.model } : {}),
+          ...(command.effort ? { effort: command.effort } : {}),
         });
         const agentSession = await adapter.start({
           session,

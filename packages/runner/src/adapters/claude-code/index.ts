@@ -1,12 +1,13 @@
 import type { AgentAdapter, AgentEvent, AgentSession, StartParams } from "../../agent-adapter.js";
 import { MessageQueue } from "../../message-queue.js";
-import { SdkClaudeTransport } from "./sdk-transport.js";
+import { SdkClaudeTransport, type SdkTransportOptions } from "./sdk-transport.js";
 import type { ClaudeMessage, ClaudeTransport } from "./transport.js";
 
 export * from "./transport.js";
 export { SdkClaudeTransport } from "./sdk-transport.js";
 
-export type ClaudeTransportFactory = () => ClaudeTransport;
+/** Crea un transporte para la tarea, con el modelo/effort elegidos (si los hay). */
+export type ClaudeTransportFactory = (options: SdkTransportOptions) => ClaudeTransport;
 
 /** Traduce un mensaje del transporte a un evento del protocolo. */
 function toEvent(message: ClaudeMessage): AgentEvent {
@@ -37,14 +38,20 @@ export class ClaudeCodeAdapter implements AgentAdapter {
   readonly agentType = "claude-code" as const;
 
   constructor(
-    private readonly createTransport: ClaudeTransportFactory = () => new SdkClaudeTransport(),
+    private readonly createTransport: ClaudeTransportFactory = (options) =>
+      new SdkClaudeTransport(options),
   ) {}
 
   async start(params: StartParams): Promise<AgentSession> {
     const controller = new AbortController();
     const input = new MessageQueue();
     input.push(params.prompt); // el prompt inicial es el primer mensaje
-    const transport = this.createTransport();
+    // El modelo/effort de la sesión (elegidos en la app) mandan; si faltan, el
+    // transporte aplica sus defaults explícitos.
+    const transport = this.createTransport({
+      ...(params.session.model ? { model: params.session.model } : {}),
+      ...(params.session.effort ? { effort: params.session.effort } : {}),
+    });
     void this.pump(transport, params, input, controller);
     return new ClaudeCodeSession(input, controller);
   }

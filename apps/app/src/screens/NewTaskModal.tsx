@@ -1,4 +1,4 @@
-import type { AgentType, Machine } from "@batuta/protocol";
+import type { AgentType, EffortLevel, Machine } from "@batuta/protocol";
 import { useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { sendSignedCommand } from "../lib/commands";
@@ -7,6 +7,15 @@ import type { Palette } from "../lib/theme";
 import { useThemeContext, useThemedStyles } from "../lib/theme-context";
 
 const AGENTS: AgentType[] = ["claude-code", "antigravity", "echo"];
+
+/** Modelos ofrecidos para agentes Claude (id que entiende el SDK + etiqueta). */
+const MODELS: { id: string; label: string }[] = [
+  { id: "claude-opus-4-8", label: "Opus 4.8" },
+  { id: "claude-sonnet-4-6", label: "Sonnet 4.6" },
+  { id: "claude-haiku-4-5", label: "Haiku 4.5" },
+  { id: "claude-fable-5", label: "Fable 5" },
+];
+const EFFORTS: EffortLevel[] = ["low", "medium", "high", "xhigh", "max"];
 
 export function NewTaskModal({
   visible,
@@ -21,6 +30,8 @@ export function NewTaskModal({
   const styles = useThemedStyles(makeStyles);
   const [machineId, setMachineId] = useState<string | null>(null);
   const [agentType, setAgentType] = useState<AgentType>("claude-code");
+  const [model, setModel] = useState<string>(MODELS[0]!.id);
+  const [effort, setEffort] = useState<EffortLevel>("high");
   const [cwd, setCwd] = useState(".");
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
@@ -65,6 +76,8 @@ export function NewTaskModal({
         agentType,
         cwd: cwd.trim() || ".",
         prompt: prompt.trim(),
+        // Modelo y razonamiento solo aplican a agentes Claude.
+        ...(agentType === "claude-code" ? { model, effort } : {}),
       });
       setPrompt("");
       onClose();
@@ -111,6 +124,40 @@ export function NewTaskModal({
                   </Pressable>
                 ))}
               </View>
+
+              {agentType === "claude-code" ? (
+                <>
+                  <Text style={styles.label}>Modelo</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    <View style={styles.chips}>
+                      {MODELS.map((m) => (
+                        <Pressable
+                          key={m.id}
+                          onPress={() => setModel(m.id)}
+                          style={[styles.chip, model === m.id && styles.chipOn]}
+                        >
+                          <Text style={model === m.id ? styles.chipOnText : styles.chipText}>
+                            {m.label}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </ScrollView>
+
+                  <Text style={styles.label}>Razonamiento</Text>
+                  <View style={styles.chips}>
+                    {EFFORTS.map((e) => (
+                      <Pressable
+                        key={e}
+                        onPress={() => setEffort(e)}
+                        style={[styles.chip, effort === e && styles.chipOn]}
+                      >
+                        <Text style={effort === e ? styles.chipOnText : styles.chipText}>{e}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </>
+              ) : null}
 
               <Text style={styles.label}>Directorio (cwd)</Text>
               <TextInput

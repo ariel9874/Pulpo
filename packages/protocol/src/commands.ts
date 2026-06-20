@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { agentTypeSchema, isoDateTimeSchema, protocolVersionSchema, uuidSchema } from "./common.js";
+import {
+  agentTypeSchema,
+  effortLevelSchema,
+  isoDateTimeSchema,
+  protocolVersionSchema,
+  uuidSchema,
+} from "./common.js";
 
 /**
  * Comandos: órdenes de la app. Los **escribe la app** y los **lee el runner**.
@@ -28,6 +34,10 @@ export const newTaskCommandSchema = z.object({
   cwd: z.string().min(1),
   prompt: z.string().min(1),
   title: z.string().optional(),
+  /** Modelo a usar (alias o ID); el runner lo pasa al agente. Solo Claude. */
+  model: z.string().min(1).optional(),
+  /** Nivel de razonamiento (effort). */
+  effort: effortLevelSchema.optional(),
 });
 
 /** Mandar un mensaje a una sesión en curso. */

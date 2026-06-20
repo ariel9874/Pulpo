@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { agentTypeSchema, isoDateTimeSchema, uuidSchema } from "./common.js";
+import { agentTypeSchema, effortLevelSchema, isoDateTimeSchema, uuidSchema } from "./common.js";
 
 /** Estado de una sesión de agente a lo largo de su ciclo de vida. */
 export const sessionStatusSchema = z.enum([
@@ -22,6 +22,10 @@ export const sessionSchema = z.object({
   status: sessionStatusSchema,
   /** Directorio de trabajo / proyecto donde corre el agente. */
   cwd: z.string().min(1),
+  /** Modelo elegido para la tarea (alias o ID). Solo aplica a agentes Claude. */
+  model: z.string().min(1).optional(),
+  /** Nivel de razonamiento elegido para la tarea. */
+  effort: effortLevelSchema.optional(),
   createdAt: isoDateTimeSchema,
   updatedAt: isoDateTimeSchema,
 });

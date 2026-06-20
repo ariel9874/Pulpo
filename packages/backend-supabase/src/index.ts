@@ -127,6 +127,8 @@ export class SupabaseBackend implements BackendPort {
         title: input.title,
         status: input.status ?? "starting",
         cwd: input.cwd,
+        model: input.model ?? null,
+        effort: input.effort ?? null,
       })
       .select()
       .single();
@@ -462,6 +464,8 @@ function rowToSession(r: Row): Session {
     title: r.title,
     status: r.status,
     cwd: r.cwd,
+    ...(r.model ? { model: r.model } : {}),
+    ...(r.effort ? { effort: r.effort } : {}),
     createdAt: toIso(r.created_at),
     updatedAt: toIso(r.updated_at),
   });
