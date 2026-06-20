@@ -158,11 +158,32 @@ export class SupabaseBackend implements BackendPort {
   }
 
   async deleteSession(id: string): Promise<void> {
+    // Primero los artifacts de Storage: Supabase prohíbe borrar storage.objects
+    // por SQL (cascade/trigger), hay que pasar por la Storage API. Lo hacemos antes
+    // de borrar la fila para no dejar huérfanos si algo falla.
+    await this.removeSessionArtifacts(id);
     // events/commands/permissions cuelgan de sessions con ON DELETE CASCADE,
     // así que esta única baja arrastra todo el hilo. RLS (sessions_own) ya
     // exige user_id = auth.uid(), de modo que solo borras lo tuyo.
     const { error } = await this.client.from("sessions").delete().eq("id", id);
     if (error) throw error;
+  }
+
+  /** Borra los archivos de `artifacts/<user_id>/<session_id>/` vía Storage API. */
+  private async removeSessionArtifacts(sessionId: string): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) return;
+    const prefix = `${userId}/${sessionId}`;
+    const { data, error } = await this.client.storage
+      .from("artifacts")
+      .list(prefix, { limit: 1000 });
+    if (error) throw error;
+    // La convención de ruta es plana (<user>/<session>/<archivo>); `id === null`
+    // serían subcarpetas, que no se pueden borrar por nombre: las ignoramos.
+    const paths = (data ?? []).filter((o) => o.id !== null).map((o) => `${prefix}/${o.name}`);
+    if (paths.length === 0) return;
+    const { error: removeError } = await this.client.storage.from("artifacts").remove(paths);
+    if (removeError) throw removeError;
   }
 
   subscribeSessions(
