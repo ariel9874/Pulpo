@@ -244,7 +244,13 @@ function EventRow({ event }: { event: Event }) {
     case "question":
       return <Line>{`❓ ${event.question}`}</Line>;
     case "task_done":
-      return <Line>{`${event.outcome === "completed" ? "✓" : "■"} Tarea ${event.outcome}`}</Line>;
+      return (
+        <Line>
+          {`${event.outcome === "completed" ? "✓" : "■"} Tarea ${event.outcome}${
+            event.summary ? ` · ${event.summary}` : ""
+          }`}
+        </Line>
+      );
     case "error":
       return <Line warn>{`⚠️ ${event.message}`}</Line>;
     case "artifact":

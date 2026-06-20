@@ -8,7 +8,7 @@ export type ClaudeMessage =
   | { kind: "text"; text: string }
   | { kind: "thinking"; text: string }
   | { kind: "tool_use"; tool: string; title: string }
-  | { kind: "result"; outcome: "completed" | "failed" }
+  | { kind: "result"; outcome: "completed" | "failed"; summary?: string }
   | { kind: "error"; message: string };
 
 import type { RequestPermission } from "../../agent-adapter.js";

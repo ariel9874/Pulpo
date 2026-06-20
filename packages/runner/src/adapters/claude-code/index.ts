@@ -18,7 +18,11 @@ function toEvent(message: ClaudeMessage): AgentEvent {
     case "tool_use":
       return { type: "tool_call", tool: message.tool, title: message.title, status: "started" };
     case "result":
-      return { type: "task_done", outcome: message.outcome };
+      return {
+        type: "task_done",
+        outcome: message.outcome,
+        ...(message.summary ? { summary: message.summary } : {}),
+      };
     case "error":
       return { type: "error", message: message.message };
   }

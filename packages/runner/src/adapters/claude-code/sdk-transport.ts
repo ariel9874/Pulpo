@@ -10,10 +10,18 @@ interface SdkContentBlock {
   name?: string;
   input?: Record<string, unknown>;
 }
+interface SdkModelUsage {
+  inputTokens?: number;
+  outputTokens?: number;
+}
 interface SdkMessage {
   type: string;
   subtype?: string;
   message?: { content?: SdkContentBlock[] };
+  // Campos del mensaje `result` (uso/coste de la tarea).
+  total_cost_usd?: number;
+  num_turns?: number;
+  modelUsage?: Record<string, SdkModelUsage>;
 }
 interface ClaudeAgentSdk {
   query(args: {
@@ -40,8 +48,26 @@ async function* toSdkUserMessages(input: AsyncIterable<string>): AsyncIterable<u
  * - ⚠️ Capa marcada como interfaz no garantizada: verificada contra la doc del
  *   Agent SDK al implementar; se reaislaría aquí si el SDK cambia.
  */
+export type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max";
+
+export interface SdkTransportOptions {
+  /** Alias ('opus', 'sonnet', 'haiku', 'fable') o ID completo ('claude-opus-4-8'). */
+  model?: string;
+  /** Profundidad de razonamiento (effort del Agent SDK). */
+  effort?: EffortLevel;
+}
+
+/** Defaults explícitos: así sabemos qué modelo corre, en vez de heredar el del host. */
+const DEFAULT_MODEL = "claude-opus-4-8";
+const DEFAULT_EFFORT: EffortLevel = "high";
+
 export class SdkClaudeTransport implements ClaudeTransport {
-  constructor(private readonly model?: string) {}
+  private readonly model: string;
+  private readonly effort: EffortLevel;
+  constructor(opts: SdkTransportOptions = {}) {
+    this.model = opts.model ?? DEFAULT_MODEL;
+    this.effort = opts.effort ?? DEFAULT_EFFORT;
+  }
 
   async *run(options: ClaudeRunOptions): AsyncIterable<ClaudeMessage> {
     // Especificador como `string` (no literal) → import dinámico sin resolución
@@ -79,7 +105,8 @@ export class SdkClaudeTransport implements ClaudeTransport {
               ? { behavior: "allow", updatedInput: input }
               : { behavior: "deny", message: "Rechazado desde la app." };
           },
-          ...(this.model ? { model: this.model } : {}),
+          model: this.model,
+          effort: this.effort,
         },
       });
       for await (const message of stream) {
@@ -98,13 +125,35 @@ export class SdkClaudeTransport implements ClaudeTransport {
             }
           }
         } else if (message.type === "result") {
-          yield { kind: "result", outcome: message.subtype === "success" ? "completed" : "failed" };
+          yield {
+            kind: "result",
+            outcome: message.subtype === "success" ? "completed" : "failed",
+            ...(formatUsage(message) ? { summary: formatUsage(message) } : {}),
+          };
         }
       }
     } finally {
       options.signal.removeEventListener("abort", onAbort);
     }
   }
+}
+
+/** Resumen legible del uso de la tarea: modelo real, tokens, coste y turnos. */
+function formatUsage(m: SdkMessage): string | undefined {
+  const parts: string[] = [];
+  const [first] = Object.entries(m.modelUsage ?? {});
+  if (first) {
+    const [modelId, u] = first;
+    parts.push(modelId);
+    parts.push(`${formatTokens(u.inputTokens ?? 0)} ent · ${formatTokens(u.outputTokens ?? 0)} sal`);
+  }
+  if (typeof m.total_cost_usd === "number") parts.push(`$${m.total_cost_usd.toFixed(4)}`);
+  if (typeof m.num_turns === "number") parts.push(`${m.num_turns} turno${m.num_turns === 1 ? "" : "s"}`);
+  return parts.length > 0 ? parts.join(" · ") : undefined;
+}
+
+function formatTokens(n: number): string {
+  return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
 }
 
 /** Diff/resumen textual de lo que haría una herramienta sensible (para el permiso). */
