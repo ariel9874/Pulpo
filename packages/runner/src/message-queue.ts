@@ -1,8 +1,8 @@
 /**
- * Cola asíncrona de mensajes del usuario hacia Claude. Es un `AsyncIterable`:
+ * Cola asíncrona de mensajes del usuario hacia un agente. Es un `AsyncIterable`:
  * el primer elemento es el prompt inicial y los siguientes son los `send_message`
- * de una sesión en curso (modo de entrada en streaming del Claude Agent SDK).
- * `close()` termina la iteración (apagado/cancelación).
+ * de una sesión en curso (entrada en streaming). `close()` termina la iteración
+ * (apagado/cancelación). La comparten los adaptadores (Claude, Antigravity…).
  */
 export class MessageQueue implements AsyncIterable<string> {
   private readonly values: string[] = [];

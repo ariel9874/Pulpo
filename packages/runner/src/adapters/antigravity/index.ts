@@ -1,15 +1,15 @@
 import type { AgentAdapter, AgentEvent, AgentSession, StartParams } from "../../agent-adapter.js";
 import { MessageQueue } from "../../message-queue.js";
-import { SdkClaudeTransport } from "./sdk-transport.js";
-import type { ClaudeMessage, ClaudeTransport } from "./transport.js";
+import { AgyCliTransport } from "./cli-transport.js";
+import type { AntigravityMessage, AntigravityTransport } from "./transport.js";
 
 export * from "./transport.js";
-export { SdkClaudeTransport } from "./sdk-transport.js";
+export { AgyCliTransport, type AgyCliOptions } from "./cli-transport.js";
 
-export type ClaudeTransportFactory = () => ClaudeTransport;
+export type AntigravityTransportFactory = () => AntigravityTransport;
 
 /** Traduce un mensaje del transporte a un evento del protocolo. */
-function toEvent(message: ClaudeMessage): AgentEvent {
+function toEvent(message: AntigravityMessage): AgentEvent {
   switch (message.kind) {
     case "text":
       return { type: "message", role: "agent", text: message.text };
@@ -25,28 +25,29 @@ function toEvent(message: ClaudeMessage): AgentEvent {
 }
 
 /**
- * Primer adaptador real: lanza Claude Code (vía el Claude Agent SDK por defecto)
- * y mapea su actividad a eventos del protocolo. El transporte es inyectable, así
- * que en tests se usa uno simulado sin gastar tokens.
+ * Segundo adaptador (prueba de "universal"): lanza Antigravity vía su CLI `agy`
+ * y mapea su actividad a eventos del protocolo. Demuestra que añadir un agente es
+ * solo un adaptador — la misma forma que `ClaudeCodeAdapter`. El transporte es
+ * inyectable: en tests se usa uno simulado (sin CLI ni red).
  */
-export class ClaudeCodeAdapter implements AgentAdapter {
-  readonly agentType = "claude-code" as const;
+export class AntigravityAdapter implements AgentAdapter {
+  readonly agentType = "antigravity" as const;
 
   constructor(
-    private readonly createTransport: ClaudeTransportFactory = () => new SdkClaudeTransport(),
+    private readonly createTransport: AntigravityTransportFactory = () => new AgyCliTransport(),
   ) {}
 
   async start(params: StartParams): Promise<AgentSession> {
     const controller = new AbortController();
     const input = new MessageQueue();
-    input.push(params.prompt); // el prompt inicial es el primer mensaje
+    input.push(params.prompt);
     const transport = this.createTransport();
     void this.pump(transport, params, input, controller);
-    return new ClaudeCodeSession(input, controller);
+    return new AntigravitySession(input, controller);
   }
 
   private async pump(
-    transport: ClaudeTransport,
+    transport: AntigravityTransport,
     params: StartParams,
     input: MessageQueue,
     controller: AbortController,
@@ -63,7 +64,6 @@ export class ClaudeCodeAdapter implements AgentAdapter {
         await emit(toEvent(message));
         if (message.kind === "result") sawResult = true;
       }
-      // El stream terminó: si fue por cancelación, ciérralo como cancelado.
       if (controller.signal.aborted) {
         await emit({ type: "task_done", outcome: "cancelled" });
       } else if (!sawResult) {
@@ -79,19 +79,17 @@ export class ClaudeCodeAdapter implements AgentAdapter {
   }
 }
 
-class ClaudeCodeSession implements AgentSession {
+class AntigravitySession implements AgentSession {
   constructor(
     private readonly input: MessageQueue,
     private readonly controller: AbortController,
   ) {}
 
   async sendMessage(text: string): Promise<void> {
-    // Alimenta a la sesión de Claude en curso (modo de entrada en streaming).
-    this.input.push(text);
+    this.input.push(text); // nuevo turno en el mismo cwd
   }
 
   async cancel(): Promise<void> {
-    // Cancelación limpia: corta tras la operación en curso y cierra la entrada.
     this.controller.abort();
     this.input.close();
   }

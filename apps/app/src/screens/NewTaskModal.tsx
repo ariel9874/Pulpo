@@ -6,7 +6,7 @@ import { isSpeechSupported, startDictation } from "../lib/speech";
 import type { Palette } from "../lib/theme";
 import { useThemeContext, useThemedStyles } from "../lib/theme-context";
 
-const AGENTS: AgentType[] = ["claude-code", "echo"];
+const AGENTS: AgentType[] = ["claude-code", "antigravity", "echo"];
 
 export function NewTaskModal({
   visible,
