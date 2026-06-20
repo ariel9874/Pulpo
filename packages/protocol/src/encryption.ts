@@ -42,13 +42,58 @@ export function sealToPublicKey(plaintext: string, recipientPublicKey: string): 
   };
 }
 
-/** Abre un payload sellado con la clave privada del destinatario, o `null` si falla. */
+/** Abre un payload sellado (anónimo) con la clave privada del destinatario, o `null`. */
 export function openSealed(payload: EncryptedPayload, recipientSecretKey: string): string | null {
+  if (payload.alg !== "nacl-box-anon" || !payload.epk) return null;
   try {
     const opened = nacl.box.open(
       naclUtil.decodeBase64(payload.ciphertext),
       naclUtil.decodeBase64(payload.nonce),
       naclUtil.decodeBase64(payload.epk),
+      naclUtil.decodeBase64(recipientSecretKey),
+    );
+    return opened ? naclUtil.encodeUTF8(opened) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Cifrado AUTENTICADO (e2e mutuo): el remitente cifra con SU clave privada hacia
+ * la pública del receptor. El receptor verifica que vino del remitente esperado.
+ */
+export function boxSeal(
+  plaintext: string,
+  recipientPublicKey: string,
+  senderSecretKey: string,
+): EncryptedPayload {
+  const nonce = nacl.randomBytes(nacl.box.nonceLength);
+  const boxed = nacl.box(
+    naclUtil.decodeUTF8(plaintext),
+    nonce,
+    naclUtil.decodeBase64(recipientPublicKey),
+    naclUtil.decodeBase64(senderSecretKey),
+  );
+  return {
+    type: "encrypted",
+    alg: "nacl-box",
+    nonce: naclUtil.encodeBase64(nonce),
+    ciphertext: naclUtil.encodeBase64(boxed),
+  };
+}
+
+/** Abre y AUTENTICA un payload `nacl-box` contra la pública del remitente, o `null`. */
+export function boxOpen(
+  payload: EncryptedPayload,
+  senderPublicKey: string,
+  recipientSecretKey: string,
+): string | null {
+  if (payload.alg !== "nacl-box") return null;
+  try {
+    const opened = nacl.box.open(
+      naclUtil.decodeBase64(payload.ciphertext),
+      naclUtil.decodeBase64(payload.nonce),
+      naclUtil.decodeBase64(senderPublicKey),
       naclUtil.decodeBase64(recipientSecretKey),
     );
     return opened ? naclUtil.encodeUTF8(opened) : null;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { encryptedPayloadSchema } from "./common.js";
-import { generateBoxKeyPair, openSealed, sealToPublicKey } from "./encryption.js";
+import { boxOpen, boxSeal, generateBoxKeyPair, openSealed, sealToPublicKey } from "./encryption.js";
 
 describe("cifrado e2e de payloads (sealed box)", () => {
   it("sella y abre con la clave del destinatario", () => {
@@ -37,6 +37,43 @@ describe("cifrado e2e de payloads (sealed box)", () => {
     const b = sealToPublicKey("x", app.publicKey);
     expect(a.epk).not.toBe(b.epk);
     expect(a.nonce).not.toBe(b.nonce);
+  });
+});
+
+describe("cifrado e2e autenticado (nacl-box)", () => {
+  it("el receptor abre y autentica al remitente esperado", () => {
+    const runner = generateBoxKeyPair();
+    const app = generateBoxKeyPair();
+    const sealed = boxSeal("diff secreto", app.publicKey, runner.secretKey);
+    expect(sealed.alg).toBe("nacl-box");
+    expect(encryptedPayloadSchema.safeParse(sealed).success).toBe(true);
+    expect(boxOpen(sealed, runner.publicKey, app.secretKey)).toBe("diff secreto");
+  });
+
+  it("falla si el remitente declarado no es quien cifró (autenticidad)", () => {
+    const runner = generateBoxKeyPair();
+    const impostor = generateBoxKeyPair();
+    const app = generateBoxKeyPair();
+    const sealed = boxSeal("diff", app.publicKey, runner.secretKey);
+    // Verificar contra la pública del impostor falla.
+    expect(boxOpen(sealed, impostor.publicKey, app.secretKey)).toBeNull();
+  });
+
+  it("falla con la clave privada equivocada del receptor", () => {
+    const runner = generateBoxKeyPair();
+    const app = generateBoxKeyPair();
+    const otro = generateBoxKeyPair();
+    const sealed = boxSeal("diff", app.publicKey, runner.secretKey);
+    expect(boxOpen(sealed, runner.publicKey, otro.secretKey)).toBeNull();
+  });
+
+  it("las funciones no cruzan algoritmos", () => {
+    const runner = generateBoxKeyPair();
+    const app = generateBoxKeyPair();
+    const auth = boxSeal("x", app.publicKey, runner.secretKey);
+    const anon = sealToPublicKey("x", app.publicKey);
+    expect(openSealed(auth, app.secretKey)).toBeNull(); // openSealed solo abre anon
+    expect(boxOpen(anon, runner.publicKey, app.secretKey)).toBeNull(); // boxOpen solo abre auth
   });
 });
 

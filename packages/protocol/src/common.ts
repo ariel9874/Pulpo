@@ -44,9 +44,14 @@ export const refPayloadSchema = z.object({
  */
 export const encryptedPayloadSchema = z.object({
   type: z.literal("encrypted"),
-  alg: z.literal("nacl-box-anon"),
-  /** Clave pública efímera del remitente (base64). */
-  epk: z.string().min(1),
+  /**
+   * `nacl-box-anon`: sealed box (remitente efímero/anónimo, solo confidencialidad).
+   * `nacl-box`: box autenticado (el remitente firma con su clave persistente; el
+   * receptor verifica → confidencialidad + autenticidad del emisor).
+   */
+  alg: z.enum(["nacl-box-anon", "nacl-box"]),
+  /** Clave pública efímera del remitente (base64). Solo en `nacl-box-anon`. */
+  epk: z.string().min(1).optional(),
   nonce: z.string().min(1),
   ciphertext: z.string().min(1),
 });
