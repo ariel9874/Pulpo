@@ -20,6 +20,7 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { MarkdownMessage } from "../components/MarkdownMessage";
 import { resolveArtifactUrl } from "../lib/artifacts";
 import { backend } from "../lib/backend";
@@ -323,11 +324,24 @@ function Bubble({
   const { palette } = useThemeContext();
   const styles = useThemedStyles(makeStyles);
   const mine = role === "user";
+  const [copied, setCopied] = useState(false);
+  const copy = useCallback(async (): Promise<void> => {
+    await Clipboard.setStringAsync(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }, [text]);
   return (
     <View style={[styles.bubble, mine && styles.bubbleUser]}>
       <View style={styles.bubbleHeader}>
         <Text style={[styles.bubbleLabel, mine && styles.bubbleOnPrimary]}>{ROLE_LABEL[role]}</Text>
-        <Text style={[styles.bubbleTime, mine && styles.bubbleOnPrimary]}>{formatTime(ts)}</Text>
+        <View style={styles.bubbleHeaderRight}>
+          <Text style={[styles.bubbleTime, mine && styles.bubbleOnPrimary]}>{formatTime(ts)}</Text>
+          <Pressable onPress={() => void copy()} hitSlop={8} style={styles.copyBtn}>
+            <Text style={[styles.copyText, mine && styles.bubbleOnPrimary]}>
+              {copied ? "✓ Copiado" : "⧉ Copiar"}
+            </Text>
+          </Pressable>
+        </View>
       </View>
       {mine ? (
         <Text style={[styles.bubbleText, styles.bubbleOnPrimary]} selectable>
@@ -377,8 +391,11 @@ const makeStyles = (p: Palette) =>
       gap: 8,
       marginBottom: 2,
     },
+    bubbleHeaderRight: { flexDirection: "row", alignItems: "center", gap: 10 },
     bubbleLabel: { fontSize: 11, color: p.muted, textTransform: "uppercase" },
     bubbleTime: { fontSize: 11, color: p.muted, opacity: 0.8 },
+    copyBtn: { paddingVertical: 2 },
+    copyText: { fontSize: 11, color: p.muted, fontWeight: "600" },
     bubbleText: { fontSize: 15, color: p.text },
     card: { borderWidth: 1, borderColor: p.border, borderRadius: 10, padding: 12, gap: 8 },
     cardTitle: { fontWeight: "600", color: p.text },
