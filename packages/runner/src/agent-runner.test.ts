@@ -1,5 +1,6 @@
 import { MemoryBackend } from "@batuta/backend-memory";
 import {
+  boxOpen,
   generateBoxKeyPair,
   generateSigningKeyPair,
   openSealed,
@@ -400,6 +401,39 @@ describe("AgentRunner — cifrado e2e del diff", () => {
     if (event.diff.type !== "encrypted") throw new Error("no cifrado");
     expect(event.diff.ciphertext).not.toContain("contraseña");
     expect(openSealed(event.diff, app.secretKey)).toBe(DIFF);
+
+    await runner.stop();
+  });
+
+  it("con clave del runner, cifra Y autentica el diff (la app verifica el emisor)", async () => {
+    const backend = new MemoryBackend();
+    const machine = await backend.registerMachine({ name: "PC" });
+    const app = generateBoxKeyPair();
+    const runnerBox = generateBoxKeyPair();
+    const runner = new AgentRunner(backend, machine.id, [new PermissionAdapter(DIFF)], {
+      recipientBoxPublicKey: app.publicKey,
+      senderBoxSecretKey: runnerBox.secretKey,
+    });
+    await runner.start();
+
+    await backend.sendCommand({
+      type: "new_task",
+      machineId: machine.id,
+      agentType: "claude-code",
+      cwd: "/x",
+      prompt: "cambia la contraseña",
+    });
+
+    const session = await waitFor(async () => (await backend.listSessions())[0]);
+    const event = await findPermissionEvent(backend, session.id);
+    if (event.type !== "permission_required" || event.diff?.type !== "encrypted") {
+      throw new Error("sin diff cifrado");
+    }
+    expect(event.diff.alg).toBe("nacl-box");
+    // La app abre y autentica contra la pública del runner.
+    expect(boxOpen(event.diff, runnerBox.publicKey, app.secretKey)).toBe(DIFF);
+    // Con otra pública (impostor) NO abre.
+    expect(boxOpen(event.diff, generateBoxKeyPair().publicKey, app.secretKey)).toBeNull();
 
     await runner.stop();
   });

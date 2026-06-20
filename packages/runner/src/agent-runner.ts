@@ -1,4 +1,5 @@
 import {
+  boxSeal,
   isTerminalSessionStatus,
   sealToPublicKey,
   verifyCommandSignature,
@@ -33,6 +34,12 @@ export interface AgentRunnerOptions {
    * los diffs viajan inline.
    */
   recipientBoxPublicKey?: string;
+  /**
+   * Clave privada de cifrado (base64) del runner. Si se define junto a
+   * `recipientBoxPublicKey`, los diffs van cifrados Y autenticados (la app
+   * verifica que vinieron de este runner). Si se omite, cifrado anónimo.
+   */
+  senderBoxSecretKey?: string;
 }
 
 interface PendingPermission {
@@ -56,6 +63,7 @@ export class AgentRunner {
   private readonly permissionTimeoutMs: number;
   private readonly signerPublicKey: string | undefined;
   private readonly recipientBoxPublicKey: string | undefined;
+  private readonly senderBoxSecretKey: string | undefined;
   private unsubscribe: Unsubscribe | undefined;
 
   constructor(
@@ -69,6 +77,7 @@ export class AgentRunner {
     this.permissionTimeoutMs = options.permissionTimeoutMs ?? 5 * 60 * 1_000;
     this.signerPublicKey = options.signerPublicKey;
     this.recipientBoxPublicKey = options.recipientBoxPublicKey;
+    this.senderBoxSecretKey = options.senderBoxSecretKey;
   }
 
   /**
@@ -260,7 +269,9 @@ export class AgentRunner {
   ): Promise<PermissionDecision> {
     const diff: Payload | undefined = request.diff
       ? this.recipientBoxPublicKey
-        ? sealToPublicKey(request.diff, this.recipientBoxPublicKey)
+        ? this.senderBoxSecretKey
+          ? boxSeal(request.diff, this.recipientBoxPublicKey, this.senderBoxSecretKey)
+          : sealToPublicKey(request.diff, this.recipientBoxPublicKey)
         : { type: "inline", content: request.diff }
       : undefined;
     const permission = await this.backend.createPermission({
