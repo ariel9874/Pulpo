@@ -6,7 +6,7 @@ import {
   type Event,
   type Session,
 } from "@batuta/protocol";
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -17,7 +17,10 @@ import {
   Text,
   TextInput,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from "react-native";
+import { MarkdownMessage } from "../components/MarkdownMessage";
 import { resolveArtifactUrl } from "../lib/artifacts";
 import { backend } from "../lib/backend";
 import { sendSignedCommand } from "../lib/commands";
@@ -62,6 +65,18 @@ export function SessionScreen({ session, onBack }: { session: Session; onBack: (
 
   const [draft, setDraft] = useState("");
 
+  // Auto-scroll: seguimos el último mensaje mientras el usuario esté cerca del
+  // fondo; si subió a leer historial, no lo arrastramos al llegar algo nuevo.
+  const listRef = useRef<FlatList<Event>>(null);
+  const atBottom = useRef(true);
+  const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+    atBottom.current = contentSize.height - contentOffset.y - layoutMeasurement.height < 80;
+  }, []);
+  const followIfAtBottom = useCallback(() => {
+    if (atBottom.current) listRef.current?.scrollToEnd({ animated: true });
+  }, []);
+
   const decide = (permissionId: string, decision: "approve" | "reject") => {
     setPending((prev) => {
       const next = new Set(prev);
@@ -75,6 +90,9 @@ export function SessionScreen({ session, onBack }: { session: Session; onBack: (
     const text = draft.trim();
     if (!text) return;
     setDraft("");
+    // Al enviar, volvemos a "seguir el fondo" aunque hubiéramos subido a leer.
+    atBottom.current = true;
+    listRef.current?.scrollToEnd({ animated: true });
     await sendSignedCommand({ type: "send_message", sessionId: session.id, text });
   };
 
@@ -109,11 +127,15 @@ export function SessionScreen({ session, onBack }: { session: Session; onBack: (
         </View>
       ) : (
         <FlatList
+          ref={listRef}
           style={styles.flex}
           data={events}
           keyExtractor={(e) => e.id}
           extraData={pending}
           contentContainerStyle={styles.list}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          onContentSizeChange={followIfAtBottom}
           ListEmptyComponent={<Text style={styles.muted}>Sin actividad todavía.</Text>}
           renderItem={({ item }) =>
             item.type === "permission_required" ? (
@@ -157,7 +179,7 @@ export function SessionScreen({ session, onBack }: { session: Session; onBack: (
 function EventRow({ event }: { event: Event }) {
   switch (event.type) {
     case "message":
-      return <Bubble role={event.role} text={event.text} />;
+      return <Bubble role={event.role} text={event.text} ts={event.ts} />;
     case "thought":
       return <Line muted>{`💭 ${event.text}`}</Line>;
     case "tool_call":
@@ -283,13 +305,37 @@ const ROLE_LABEL: Record<"agent" | "user" | "system", string> = {
   system: "Sistema",
 };
 
-function Bubble({ role, text }: { role: "agent" | "user" | "system"; text: string }) {
+function formatTime(ts: string): string {
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function Bubble({
+  role,
+  text,
+  ts,
+}: {
+  role: "agent" | "user" | "system";
+  text: string;
+  ts: string;
+}) {
+  const { palette } = useThemeContext();
   const styles = useThemedStyles(makeStyles);
   const mine = role === "user";
   return (
     <View style={[styles.bubble, mine && styles.bubbleUser]}>
-      <Text style={[styles.bubbleLabel, mine && styles.bubbleOnPrimary]}>{ROLE_LABEL[role]}</Text>
-      <Text style={[styles.bubbleText, mine && styles.bubbleOnPrimary]}>{text}</Text>
+      <View style={styles.bubbleHeader}>
+        <Text style={[styles.bubbleLabel, mine && styles.bubbleOnPrimary]}>{ROLE_LABEL[role]}</Text>
+        <Text style={[styles.bubbleTime, mine && styles.bubbleOnPrimary]}>{formatTime(ts)}</Text>
+      </View>
+      {mine ? (
+        <Text style={[styles.bubbleText, styles.bubbleOnPrimary]} selectable>
+          {text}
+        </Text>
+      ) : (
+        <MarkdownMessage text={text} palette={palette} />
+      )}
     </View>
   );
 }
@@ -320,11 +366,19 @@ const makeStyles = (p: Palette) =>
       padding: 12,
       gap: 2,
       alignSelf: "flex-start",
-      maxWidth: "88%",
+      maxWidth: "92%",
     },
     bubbleUser: { alignSelf: "flex-end", backgroundColor: p.primary },
     bubbleOnPrimary: { color: p.primaryText },
+    bubbleHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8,
+      marginBottom: 2,
+    },
     bubbleLabel: { fontSize: 11, color: p.muted, textTransform: "uppercase" },
+    bubbleTime: { fontSize: 11, color: p.muted, opacity: 0.8 },
     bubbleText: { fontSize: 15, color: p.text },
     card: { borderWidth: 1, borderColor: p.border, borderRadius: 10, padding: 12, gap: 8 },
     cardTitle: { fontWeight: "600", color: p.text },
