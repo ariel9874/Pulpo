@@ -1,4 +1,4 @@
-import type { AgentType, EffortLevel, Machine } from "@batuta/protocol";
+import type { AgentCapability, AgentType, EffortLevel, Machine } from "@batuta/protocol";
 import { useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { sendSignedCommand } from "../lib/commands";
@@ -6,16 +6,46 @@ import { isSpeechSupported, startDictation } from "../lib/speech";
 import type { Palette } from "../lib/theme";
 import { useThemeContext, useThemedStyles } from "../lib/theme-context";
 
-const AGENTS: AgentType[] = ["claude-code", "antigravity", "echo"];
-
-/** Modelos ofrecidos para agentes Claude (id que entiende el SDK + etiqueta). */
-const MODELS: { id: string; label: string }[] = [
-  { id: "claude-opus-4-8", label: "Opus 4.8" },
-  { id: "claude-sonnet-4-6", label: "Sonnet 4.6" },
-  { id: "claude-haiku-4-5", label: "Haiku 4.5" },
-  { id: "claude-fable-5", label: "Fable 5" },
-];
 const EFFORTS: EffortLevel[] = ["low", "medium", "high", "xhigh", "max"];
+
+/**
+ * Capacidades por defecto cuando la máquina aún no publicó las suyas (runner
+ * viejo o sin reportar todavía). Mantiene la app usable durante el rollout.
+ */
+const FALLBACK_AGENTS: AgentCapability[] = [
+  {
+    agentType: "claude-code",
+    label: "Claude Code",
+    available: true,
+    models: [
+      { id: "claude-opus-4-8", label: "Opus 4.8" },
+      { id: "claude-sonnet-4-6", label: "Sonnet 4.6" },
+      { id: "claude-haiku-4-5", label: "Haiku 4.5" },
+      { id: "claude-fable-5", label: "Fable 5" },
+    ],
+    supportsEffort: true,
+    supportsPermissions: true,
+    supportsUsage: true,
+  },
+  {
+    agentType: "antigravity",
+    label: "Antigravity",
+    available: true,
+    models: [],
+    supportsEffort: false,
+    supportsPermissions: false,
+    supportsUsage: false,
+  },
+  {
+    agentType: "echo",
+    label: "Echo (prueba)",
+    available: true,
+    models: [],
+    supportsEffort: false,
+    supportsPermissions: false,
+    supportsUsage: false,
+  },
+];
 
 export function NewTaskModal({
   visible,
@@ -30,7 +60,7 @@ export function NewTaskModal({
   const styles = useThemedStyles(makeStyles);
   const [machineId, setMachineId] = useState<string | null>(null);
   const [agentType, setAgentType] = useState<AgentType>("claude-code");
-  const [model, setModel] = useState<string>(MODELS[0]!.id);
+  const [model, setModel] = useState<string | null>(null);
   const [effort, setEffort] = useState<EffortLevel>("high");
   const [cwd, setCwd] = useState(".");
   const [prompt, setPrompt] = useState("");
@@ -40,7 +70,17 @@ export function NewTaskModal({
   const speechOk = isSpeechSupported();
 
   const selectedMachine = machineId ?? machines[0]?.id ?? null;
-  const canLaunch = Boolean(selectedMachine) && prompt.trim().length > 0 && !busy;
+
+  // Capacidades publicadas por la máquina seleccionada (modelos por agente, flags).
+  // Si aún no publicó nada, usamos el fallback para no romper la app.
+  const machine = machines.find((m) => m.id === selectedMachine);
+  const published = (machine?.agents ?? []).filter((a) => a.available);
+  const agents = published.length > 0 ? published : FALLBACK_AGENTS;
+  const cap = agents.find((a) => a.agentType === agentType) ?? agents[0];
+  const selectedModel = cap?.models.find((m) => m.id === model)?.id ?? cap?.models[0]?.id ?? null;
+
+  const canLaunch =
+    Boolean(selectedMachine) && Boolean(cap) && prompt.trim().length > 0 && !busy;
 
   const toggleDictation = (): void => {
     if (listening) {
@@ -67,17 +107,18 @@ export function NewTaskModal({
   };
 
   const launch = async (): Promise<void> => {
-    if (!selectedMachine || !prompt.trim()) return;
+    if (!selectedMachine || !cap || !prompt.trim()) return;
     setBusy(true);
     try {
       await sendSignedCommand({
         type: "new_task",
         machineId: selectedMachine,
-        agentType,
+        agentType: cap.agentType,
         cwd: cwd.trim() || ".",
         prompt: prompt.trim(),
-        // Modelo y razonamiento solo aplican a agentes Claude.
-        ...(agentType === "claude-code" ? { model, effort } : {}),
+        // Solo lo que el agente soporta (catálogo no vacío / effort).
+        ...(selectedModel ? { model: selectedModel } : {}),
+        ...(cap.supportsEffort ? { effort } : {}),
       });
       setPrompt("");
       onClose();
@@ -114,36 +155,44 @@ export function NewTaskModal({
 
               <Text style={styles.label}>Agente</Text>
               <View style={styles.chips}>
-                {AGENTS.map((a) => (
+                {agents.map((a) => (
                   <Pressable
-                    key={a}
-                    onPress={() => setAgentType(a)}
-                    style={[styles.chip, agentType === a && styles.chipOn]}
+                    key={a.agentType}
+                    onPress={() => setAgentType(a.agentType)}
+                    style={[styles.chip, cap?.agentType === a.agentType && styles.chipOn]}
                   >
-                    <Text style={agentType === a ? styles.chipOnText : styles.chipText}>{a}</Text>
+                    <Text
+                      style={cap?.agentType === a.agentType ? styles.chipOnText : styles.chipText}
+                    >
+                      {a.label}
+                    </Text>
                   </Pressable>
                 ))}
               </View>
 
-              {agentType === "claude-code" ? (
+              {cap && cap.models.length > 0 ? (
                 <>
                   <Text style={styles.label}>Modelo</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <View style={styles.chips}>
-                      {MODELS.map((m) => (
+                      {cap.models.map((m) => (
                         <Pressable
                           key={m.id}
                           onPress={() => setModel(m.id)}
-                          style={[styles.chip, model === m.id && styles.chipOn]}
+                          style={[styles.chip, selectedModel === m.id && styles.chipOn]}
                         >
-                          <Text style={model === m.id ? styles.chipOnText : styles.chipText}>
+                          <Text style={selectedModel === m.id ? styles.chipOnText : styles.chipText}>
                             {m.label}
                           </Text>
                         </Pressable>
                       ))}
                     </View>
                   </ScrollView>
+                </>
+              ) : null}
 
+              {cap?.supportsEffort ? (
+                <>
                   <Text style={styles.label}>Razonamiento</Text>
                   <View style={styles.chips}>
                     {EFFORTS.map((e) => (
@@ -157,6 +206,12 @@ export function NewTaskModal({
                     ))}
                   </View>
                 </>
+              ) : null}
+
+              {cap && !cap.supportsPermissions ? (
+                <Text style={styles.warn}>
+                  ⚠️ Este agente ejecuta sin pedir aprobación (no hay gating de permisos).
+                </Text>
               ) : null}
 
               <Text style={styles.label}>Directorio (cwd)</Text>
@@ -220,6 +275,7 @@ const makeStyles = (p: Palette) =>
     },
     title: { fontSize: 20, fontWeight: "700", marginBottom: 4, color: p.text },
     muted: { color: p.muted, paddingVertical: 12 },
+    warn: { color: "#b45309", fontSize: 12, marginTop: 8 },
     label: { fontSize: 12, color: p.muted, marginTop: 8 },
     labelRow: {
       flexDirection: "row",

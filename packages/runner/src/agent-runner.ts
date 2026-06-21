@@ -87,6 +87,10 @@ export class AgentRunner {
    */
   async start(): Promise<void> {
     await this.reconcileOrphans();
+    // Publica las capacidades de los agentes de esta máquina (modelos, flags).
+    // Fire-and-forget: el descubrimiento puede tardar (lanza CLIs) y no debe
+    // bloquear la suscripción a comandos.
+    void this.publishCapabilities();
     await new Promise<void>((resolve) => {
       let ready = false;
       this.unsubscribe = this.backend.subscribeCommands(
@@ -105,6 +109,18 @@ export class AgentRunner {
         },
       );
     });
+  }
+
+  /** Reúne las capacidades de todos los adaptadores y las publica en la máquina. */
+  private async publishCapabilities(): Promise<void> {
+    try {
+      const agents = await Promise.all(
+        [...this.adapters.values()].map((adapter) => adapter.capabilities()),
+      );
+      await this.backend.setMachineAgents(this.machineId, agents);
+    } catch (err) {
+      this.onError(err);
+    }
   }
 
   /** Procesa los comandos sin consumir de esta máquina (catch-up). */

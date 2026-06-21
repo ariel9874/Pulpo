@@ -6,6 +6,7 @@ import {
   permissionSchema,
   sessionSchema,
   PROTOCOL_VERSION,
+  type AgentCapability,
   type AppendEventInput,
   type BackendPort,
   type Command,
@@ -96,6 +97,12 @@ export class MemoryBackend implements BackendPort {
     const machine = this.machines.get(machineId);
     if (!machine) throw new Error(`Máquina desconocida: ${machineId}`);
     this.machines.set(machineId, { ...machine, status });
+  }
+
+  async setMachineAgents(machineId: string, agents: AgentCapability[]): Promise<void> {
+    const machine = this.machines.get(machineId);
+    if (!machine) throw new Error(`Máquina desconocida: ${machineId}`);
+    this.machines.set(machineId, machineSchema.parse({ ...machine, agents }));
   }
 
   async listMachines(): Promise<Machine[]> {

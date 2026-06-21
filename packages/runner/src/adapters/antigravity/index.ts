@@ -1,12 +1,19 @@
+import type { AgentCapability } from "@batuta/protocol";
 import type { AgentAdapter, AgentEvent, AgentSession, StartParams } from "../../agent-adapter.js";
 import { MessageQueue } from "../../message-queue.js";
-import { AgyCliTransport } from "./cli-transport.js";
+import { AgyCliTransport, discoverAgy, type AgyDiscovery } from "./cli-transport.js";
 import type { AntigravityMessage, AntigravityTransport } from "./transport.js";
 
 export * from "./transport.js";
-export { AgyCliTransport, type AgyCliOptions } from "./cli-transport.js";
+export { AgyCliTransport, discoverAgy, type AgyCliOptions } from "./cli-transport.js";
 
-export type AntigravityTransportFactory = () => AntigravityTransport;
+/** Opciones por tarea para el transporte (hoy: el modelo elegido en la app). */
+export interface AntigravityTransportOptions {
+  model?: string;
+}
+export type AntigravityTransportFactory = (
+  options: AntigravityTransportOptions,
+) => AntigravityTransport;
 
 /** Traduce un mensaje del transporte a un evento del protocolo. */
 function toEvent(message: AntigravityMessage): AgentEvent {
@@ -34,14 +41,33 @@ export class AntigravityAdapter implements AgentAdapter {
   readonly agentType = "antigravity" as const;
 
   constructor(
-    private readonly createTransport: AntigravityTransportFactory = () => new AgyCliTransport(),
+    private readonly createTransport: AntigravityTransportFactory = (options) =>
+      new AgyCliTransport(options),
+    /** Descubrimiento de `agy` (inyectable en tests para no lanzar el CLI real). */
+    private readonly discover: () => Promise<AgyDiscovery> = () => discoverAgy(),
   ) {}
+
+  async capabilities(): Promise<AgentCapability> {
+    const { available, models } = await this.discover();
+    return {
+      agentType: this.agentType,
+      label: "Antigravity",
+      available,
+      models,
+      // El CLI `agy --print` no expone hook de permisos ni effort, ni reporta uso.
+      supportsEffort: false,
+      supportsPermissions: false,
+      supportsUsage: false,
+    };
+  }
 
   async start(params: StartParams): Promise<AgentSession> {
     const controller = new AbortController();
     const input = new MessageQueue();
     input.push(params.prompt);
-    const transport = this.createTransport();
+    const transport = this.createTransport({
+      ...(params.session.model ? { model: params.session.model } : {}),
+    });
     void this.pump(transport, params, input, controller);
     return new AntigravitySession(input, controller);
   }

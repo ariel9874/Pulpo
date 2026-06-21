@@ -15,6 +15,17 @@ import { AgentRunner } from "./agent-runner.js";
 class PermissionAdapter implements AgentAdapter {
   readonly agentType = "claude-code" as const;
   constructor(private readonly diff: string) {}
+  async capabilities() {
+    return {
+      agentType: this.agentType,
+      label: "Claude Code",
+      available: true,
+      models: [],
+      supportsEffort: true,
+      supportsPermissions: true,
+      supportsUsage: true,
+    };
+  }
   async start(params: StartParams): Promise<AgentSession> {
     void params.requestPermission({ tool: "Write", title: "escribe archivo", diff: this.diff });
     return {

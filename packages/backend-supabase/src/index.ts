@@ -10,6 +10,7 @@ import {
   machineSchema,
   permissionSchema,
   sessionSchema,
+  type AgentCapability,
   type AppendEventInput,
   type BackendPort,
   type Command,
@@ -102,6 +103,11 @@ export class SupabaseBackend implements BackendPort {
 
   async setMachineStatus(machineId: string, status: Machine["status"]): Promise<void> {
     const { error } = await this.client.from("machines").update({ status }).eq("id", machineId);
+    if (error) throw error;
+  }
+
+  async setMachineAgents(machineId: string, agents: AgentCapability[]): Promise<void> {
+    const { error } = await this.client.from("machines").update({ agents }).eq("id", machineId);
     if (error) throw error;
   }
 
@@ -453,6 +459,7 @@ function rowToMachine(r: Row): Machine {
     status: r.status,
     lastSeen: toIso(r.last_seen),
     createdAt: toIso(r.created_at),
+    agents: r.agents ? asObject(r.agents) : [],
   });
 }
 

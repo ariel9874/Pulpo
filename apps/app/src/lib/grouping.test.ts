@@ -12,6 +12,7 @@ const machine = (id: string, name: string, online: boolean): Machine => ({
   status: online ? "online" : "offline",
   lastSeen: ago(online ? 1_000 : 60 * 60_000),
   createdAt: ago(0),
+  agents: [],
 });
 
 const session = (id: string, machineId: string, createdAt: string): Session => ({

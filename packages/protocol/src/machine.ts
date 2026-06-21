@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { agentCapabilitySchema } from "./agent-capabilities.js";
 import { isoDateTimeSchema, uuidSchema } from "./common.js";
 
 /** Estado de conexión de una máquina (PC con un runner). */
@@ -13,6 +14,8 @@ export const machineSchema = z.object({
   status: machineStatusSchema,
   lastSeen: isoDateTimeSchema,
   createdAt: isoDateTimeSchema,
+  /** Capacidades de los agentes en esta máquina (las publica el runner). */
+  agents: z.array(agentCapabilitySchema).default([]),
 });
 export type Machine = z.infer<typeof machineSchema>;
 

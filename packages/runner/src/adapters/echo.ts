@@ -1,3 +1,4 @@
+import type { AgentCapability } from "@batuta/protocol";
 import type { AgentAdapter, AgentSession, EmitFn, StartParams } from "../agent-adapter.js";
 
 /**
@@ -6,6 +7,18 @@ import type { AgentAdapter, AgentSession, EmitFn, StartParams } from "../agent-a
  */
 export class EchoAdapter implements AgentAdapter {
   readonly agentType = "echo" as const;
+
+  async capabilities(): Promise<AgentCapability> {
+    return {
+      agentType: this.agentType,
+      label: "Echo (prueba)",
+      available: true,
+      models: [],
+      supportsEffort: false,
+      supportsPermissions: false,
+      supportsUsage: false,
+    };
+  }
 
   async start(params: StartParams): Promise<AgentSession> {
     await params.emit({ type: "message", role: "agent", text: `echo: ${params.prompt}` });

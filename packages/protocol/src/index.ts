@@ -7,6 +7,7 @@
  */
 
 export * from "./common.js";
+export * from "./agent-capabilities.js";
 export * from "./machine.js";
 export * from "./session.js";
 export * from "./events.js";

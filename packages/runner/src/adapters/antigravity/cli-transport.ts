@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { createInterface } from "node:readline";
+import type { AgentModel } from "@batuta/protocol";
 import type {
   AntigravityMessage,
   AntigravityRunOptions,
@@ -22,14 +22,14 @@ export interface AgyCliOptions {
 }
 
 /**
- * Transporte real: invoca el CLI de Antigravity (`agy`) en modo headless con
- * salida JSON y mapea su actividad a `AntigravityMessage`.
+ * Transporte real: invoca el CLI de Antigravity (`agy --print`) en modo headless
+ * y mapea su salida a `AntigravityMessage`.
  *
- * ⚠️ El contrato EXACTO del CLI (nombre del binario, flags y forma del JSON)
- * varía por versión y no está documentado de forma estable; los valores aquí son
- * el mejor esfuerzo a partir de la documentación pública y DEBEN verificarse
- * contra `agy --help` de la versión instalada. Todo lo específico del CLI está
- * aislado en este archivo: el adaptador y sus tests no dependen de él.
+ * Verificado contra `agy --help` v1.0.10: `--print`/`-p` corre un prompt y emite
+ * la respuesta en **texto plano** (no JSON), `--model` elige modelo, y la
+ * auto-aprobación es `--dangerously-skip-permissions`. El print mode NO expone un
+ * hook de permisos por herramienta: o se auto-aprueba o no se ejecuta (ver
+ * SECURITY.md). Todo lo específico del CLI vive aislado aquí.
  */
 export class AgyCliTransport implements AntigravityTransport {
   constructor(private readonly opts: AgyCliOptions = {}) {}
@@ -48,9 +48,9 @@ export class AgyCliTransport implements AntigravityTransport {
     options: AntigravityRunOptions,
   ): AsyncIterable<AntigravityMessage> {
     const bin = this.opts.bin ?? "agy";
-    const args = ["-p", prompt, "--output-format", "json", "--no-color"];
-    if (this.opts.autoApprove) args.push("--yes");
+    const args = ["--print", prompt];
     if (this.opts.model) args.push("--model", this.opts.model);
+    if (this.opts.autoApprove) args.push("--dangerously-skip-permissions");
 
     const child = spawn(bin, args, { cwd: options.cwd, stdio: ["ignore", "pipe", "pipe"] });
     const onAbort = (): void => void child.kill();
@@ -66,23 +66,28 @@ export class AgyCliTransport implements AntigravityTransport {
       },
     );
 
+    // `--print` emite la respuesta en texto plano por stdout; la acumulamos y la
+    // entregamos como un único `text` al terminar (el modo es de un solo disparo).
+    let stdout = "";
     let stderr = "";
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk: string) => (stdout += chunk));
     child.stderr.setEncoding("utf8");
     child.stderr.on("data", (chunk: string) => (stderr += chunk));
 
-    let sawResult = false;
     try {
-      const rl = createInterface({ input: child.stdout });
-      for await (const line of rl) {
-        const message = mapCliLine(line);
-        if (!message) continue;
-        if (message.kind === "result") sawResult = true;
-        yield message;
-      }
       const { code, error } = await done;
       if (error) {
         yield { kind: "error", message: spawnErrorMessage(bin, error) };
-      } else if (!sawResult && code !== 0 && !options.signal.aborted) {
+        return;
+      }
+      if (options.signal.aborted) return;
+      const text = stdout.trim();
+      if (code === 0) {
+        if (text) yield { kind: "text", text };
+        yield { kind: "result", outcome: "completed" };
+      } else {
+        if (text) yield { kind: "text", text };
         yield { kind: "error", message: stderr.trim() || `agy salió con código ${code}` };
       }
     } finally {
@@ -99,43 +104,58 @@ function spawnErrorMessage(bin: string, error: NodeJS.ErrnoException): string {
   return `No se pudo lanzar "${bin}": ${error.message}`;
 }
 
-interface CliEvent {
-  type?: string;
-  role?: string;
-  text?: string;
-  message?: string;
-  tool?: string;
-  name?: string;
-  title?: string;
-  status?: string;
+export interface AgyDiscovery {
+  /** ¿`agy` está instalado y responde? */
+  available: boolean;
+  /** Catálogo de modelos (best-effort vía `agy models`; [] si falla o no logueado). */
+  models: AgentModel[];
 }
 
 /**
- * Mapea una línea de salida del CLI (NDJSON) a un `AntigravityMessage`, o `null`
- * si no es relevante o no parsea. Defensivo a propósito: las claves exactas del
- * JSON de `agy` se ajustarán al verificarlas con la versión instalada.
+ * Descubre el estado de `agy` en esta máquina: si está instalado (`--version`) y
+ * su catálogo de modelos (`agy models`). Defensivo: timeouts y nunca lanza, para
+ * no bloquear el arranque del runner. `agy models` requiere login de Google, así
+ * que sin sesión devuelve modelos vacíos (la app usará el modelo por defecto).
  */
-export function mapCliLine(line: string): AntigravityMessage | null {
-  const trimmed = line.trim();
-  if (!trimmed.startsWith("{")) return null;
-  let event: CliEvent;
-  try {
-    event = JSON.parse(trimmed) as CliEvent;
-  } catch {
-    return null;
-  }
-  const type = (event.type ?? event.role ?? "").toLowerCase();
-  const text = event.text ?? event.message ?? "";
-  if (type.includes("error")) return { kind: "error", message: text || "error de Antigravity" };
-  if (type.includes("think") || type.includes("reason")) return { kind: "thinking", text };
-  if (type.includes("tool")) {
-    const tool = event.tool ?? event.name ?? "tool";
-    return { kind: "tool_use", tool, title: event.title ?? tool };
-  }
-  if (type.includes("result") || type.includes("done") || type.includes("final")) {
-    const ok = (event.status ?? "").toLowerCase();
-    return { kind: "result", outcome: ok === "failed" || ok === "error" ? "failed" : "completed" };
-  }
-  if (text) return { kind: "text", text };
-  return null;
+export async function discoverAgy(bin = "agy"): Promise<AgyDiscovery> {
+  const version = await runAgyCapture(bin, ["--version"], 4_000);
+  if (version === null) return { available: false, models: [] };
+  const list = await runAgyCapture(bin, ["models"], 6_000);
+  return { available: true, models: list ? parseAgyModels(list) : [] };
+}
+
+/** Corre `agy <args>` y devuelve su stdout si salió con 0; `null` si falla/expira. */
+function runAgyCapture(bin: string, args: string[], timeoutMs: number): Promise<string | null> {
+  return new Promise((resolve) => {
+    const child = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
+    let out = "";
+    const timer = setTimeout(() => {
+      child.kill();
+      resolve(null);
+    }, timeoutMs);
+    timer.unref?.();
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk: string) => (out += chunk));
+    child.on("error", () => {
+      clearTimeout(timer);
+      resolve(null);
+    });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      resolve(code === 0 ? out : null);
+    });
+  });
+}
+
+/**
+ * Parser best-effort de `agy models` (formato no documentado de forma estable):
+ * una línea por modelo, descartando encabezados/separadores. Ajustar al verificar
+ * la salida real con sesión iniciada.
+ */
+function parseAgyModels(text: string): AgentModel[] {
+  return text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && !/^(usage|available|models?)\b/i.test(l) && !/^[-=*]/.test(l))
+    .map((id) => ({ id, label: id }));
 }

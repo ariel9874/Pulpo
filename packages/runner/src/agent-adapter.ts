@@ -1,4 +1,10 @@
-import type { AgentType, DistributiveOmit, Event, Session } from "@batuta/protocol";
+import type {
+  AgentCapability,
+  AgentType,
+  DistributiveOmit,
+  Event,
+  Session,
+} from "@batuta/protocol";
 
 /**
  * Un evento tal cual lo emite un adaptador: sin el envelope que pone el runner
@@ -45,4 +51,10 @@ export interface AgentAdapter {
   readonly agentType: AgentType;
   /** Arranca una sesión del agente y devuelve su handle para comandos. */
   start(params: StartParams): Promise<AgentSession>;
+  /**
+   * Capacidades de este agente EN ESTA MÁQUINA: si está instalado/usable, su
+   * catálogo de modelos, y qué soporta (effort, permisos, uso). El runner las
+   * publica; la app las lee para adaptar la UI. Debe ser defensiva y no lanzar.
+   */
+  capabilities(): Promise<AgentCapability>;
 }

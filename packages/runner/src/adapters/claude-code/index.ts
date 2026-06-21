@@ -1,3 +1,5 @@
+import { createRequire } from "node:module";
+import type { AgentCapability } from "@batuta/protocol";
 import type { AgentAdapter, AgentEvent, AgentSession, StartParams } from "../../agent-adapter.js";
 import { MessageQueue } from "../../message-queue.js";
 import { SdkClaudeTransport, type SdkTransportOptions } from "./sdk-transport.js";
@@ -34,8 +36,35 @@ function toEvent(message: ClaudeMessage): AgentEvent {
  * y mapea su actividad a eventos del protocolo. El transporte es inyectable, así
  * que en tests se usa uno simulado sin gastar tokens.
  */
+/** Catálogo curado de modelos Claude (ids que entiende el Agent SDK). */
+const CLAUDE_MODELS = [
+  { id: "claude-opus-4-8", label: "Opus 4.8" },
+  { id: "claude-sonnet-4-6", label: "Sonnet 4.6" },
+  { id: "claude-haiku-4-5", label: "Haiku 4.5" },
+  { id: "claude-fable-5", label: "Fable 5" },
+];
+
 export class ClaudeCodeAdapter implements AgentAdapter {
   readonly agentType = "claude-code" as const;
+
+  async capabilities(): Promise<AgentCapability> {
+    // "available" = el Agent SDK está instalado en esta PC (es una dep opcional).
+    let available = true;
+    try {
+      createRequire(import.meta.url).resolve("@anthropic-ai/claude-agent-sdk");
+    } catch {
+      available = false;
+    }
+    return {
+      agentType: this.agentType,
+      label: "Claude Code",
+      available,
+      models: CLAUDE_MODELS,
+      supportsEffort: true,
+      supportsPermissions: true,
+      supportsUsage: true,
+    };
+  }
 
   constructor(
     private readonly createTransport: ClaudeTransportFactory = (options) =>

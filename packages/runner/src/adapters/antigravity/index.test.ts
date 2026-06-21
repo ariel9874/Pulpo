@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { AgentEvent } from "../../agent-adapter.js";
 import { AgentRunner } from "../../agent-runner.js";
 import { AntigravityAdapter } from "./index.js";
-import { AgyCliTransport, mapCliLine } from "./cli-transport.js";
+import { AgyCliTransport } from "./cli-transport.js";
 import type {
   AntigravityMessage,
   AntigravityRunOptions,
@@ -95,6 +95,7 @@ describe("AntigravityAdapter (transporte simulado)", () => {
           { kind: "text", text: "listo" },
           { kind: "result", outcome: "completed" },
         ]),
+      async () => ({ available: false, models: [] }), // no lanzar el CLI real en tests
     );
     const runner = new AgentRunner(backend, machine.id, [adapter]);
     await runner.start();
@@ -121,7 +122,10 @@ describe("AntigravityAdapter (transporte simulado)", () => {
     const backend = new MemoryBackend();
     const machine = await backend.registerMachine({ name: "PC" });
     const runner = new AgentRunner(backend, machine.id, [
-      new AntigravityAdapter(() => new StreamingTransport()),
+      new AntigravityAdapter(
+        () => new StreamingTransport(),
+        async () => ({ available: false, models: [] }),
+      ),
     ]);
     await runner.start();
     await backend.sendCommand({
@@ -175,34 +179,30 @@ describe("AgyCliTransport — robustez", () => {
   });
 });
 
-describe("mapCliLine (parser defensivo del JSON de agy)", () => {
-  it("ignora líneas no-JSON", () => {
-    expect(mapCliLine("hola mundo")).toBeNull();
-    expect(mapCliLine("")).toBeNull();
+describe("AntigravityAdapter.capabilities", () => {
+  it("refleja el descubrimiento de agy y marca lo no soportado en false", async () => {
+    const adapter = new AntigravityAdapter(
+      () => new StreamingTransport(),
+      async () => ({ available: true, models: [{ id: "gemini-x", label: "gemini-x" }] }),
+    );
+    const cap = await adapter.capabilities();
+    expect(cap).toMatchObject({
+      agentType: "antigravity",
+      available: true,
+      models: [{ id: "gemini-x", label: "gemini-x" }],
+      supportsEffort: false,
+      supportsPermissions: false,
+      supportsUsage: false,
+    });
   });
 
-  it("mapea texto, pensamiento, herramienta, resultado y error", () => {
-    expect(mapCliLine('{"type":"message","text":"hola"}')).toEqual({ kind: "text", text: "hola" });
-    expect(mapCliLine('{"type":"thinking","text":"mmm"}')).toEqual({
-      kind: "thinking",
-      text: "mmm",
-    });
-    expect(mapCliLine('{"type":"tool_call","tool":"write","title":"w"}')).toEqual({
-      kind: "tool_use",
-      tool: "write",
-      title: "w",
-    });
-    expect(mapCliLine('{"type":"result","status":"success"}')).toEqual({
-      kind: "result",
-      outcome: "completed",
-    });
-    expect(mapCliLine('{"type":"result","status":"failed"}')).toEqual({
-      kind: "result",
-      outcome: "failed",
-    });
-    expect(mapCliLine('{"type":"error","message":"boom"}')).toEqual({
-      kind: "error",
-      message: "boom",
-    });
+  it("si agy no está disponible, available=false y sin modelos", async () => {
+    const adapter = new AntigravityAdapter(
+      () => new StreamingTransport(),
+      async () => ({ available: false, models: [] }),
+    );
+    const cap = await adapter.capabilities();
+    expect(cap.available).toBe(false);
+    expect(cap.models).toEqual([]);
   });
 });

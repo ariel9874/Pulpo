@@ -1,3 +1,4 @@
+import type { AgentCapability } from "./agent-capabilities.js";
 import type { Payload } from "./common.js";
 import type { Command } from "./commands.js";
 import type { DevicePlatform, DeviceToken } from "./device-token.js";
@@ -24,6 +25,8 @@ export interface BackendPort {
   heartbeat(machineId: string): Promise<void>;
   /** Cambia el estado de la máquina (p. ej. a offline en un apagado limpio). */
   setMachineStatus(machineId: string, status: Machine["status"]): Promise<void>;
+  /** Publica las capacidades de los agentes de esta máquina (modelos, flags). */
+  setMachineAgents(machineId: string, agents: AgentCapability[]): Promise<void>; // runner
   /** Lista las máquinas del usuario. */
   listMachines(): Promise<Machine[]>;
 
