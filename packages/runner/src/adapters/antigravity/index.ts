@@ -1,7 +1,7 @@
 import type { AgentCapability } from "@batuta/protocol";
 import type { AgentAdapter, AgentEvent, AgentSession, StartParams } from "../../agent-adapter.js";
 import { MessageQueue } from "../../message-queue.js";
-import { AgyCliTransport, discoverAgy, type AgyDiscovery } from "./cli-transport.js";
+import { AgyCliTransport } from "./cli-transport.js";
 import type { AntigravityMessage, AntigravityTransport } from "./transport.js";
 
 export * from "./transport.js";
@@ -43,18 +43,19 @@ export class AntigravityAdapter implements AgentAdapter {
   constructor(
     private readonly createTransport: AntigravityTransportFactory = (options) =>
       new AgyCliTransport(options),
-    /** Descubrimiento de `agy` (inyectable en tests para no lanzar el CLI real). */
-    private readonly discover: () => Promise<AgyDiscovery> = () => discoverAgy(),
   ) {}
 
   async capabilities(): Promise<AgentCapability> {
-    const { available, models } = await this.discover();
     return {
       agentType: this.agentType,
       label: "Antigravity",
-      available,
-      models,
-      // El CLI `agy --print` no expone hook de permisos ni effort, ni reporta uso.
+      // Marcado NO disponible a propósito: se verificó que `agy` v1.0.10 no es
+      // automatizable headless — `agy --print` no emite nada a un stdout
+      // redirigido (solo renderiza a TTY interactiva), así que el runner no puede
+      // capturar la respuesta. El cableado queda listo: reactivar a `true` cuando
+      // su CLI tenga modo servidor/JSON o salida headless. Ver cli-transport.ts.
+      available: false,
+      models: [],
       supportsEffort: false,
       supportsPermissions: false,
       supportsUsage: false,

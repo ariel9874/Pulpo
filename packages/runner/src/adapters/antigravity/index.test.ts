@@ -95,7 +95,6 @@ describe("AntigravityAdapter (transporte simulado)", () => {
           { kind: "text", text: "listo" },
           { kind: "result", outcome: "completed" },
         ]),
-      async () => ({ available: false, models: [] }), // no lanzar el CLI real en tests
     );
     const runner = new AgentRunner(backend, machine.id, [adapter]);
     await runner.start();
@@ -122,10 +121,7 @@ describe("AntigravityAdapter (transporte simulado)", () => {
     const backend = new MemoryBackend();
     const machine = await backend.registerMachine({ name: "PC" });
     const runner = new AgentRunner(backend, machine.id, [
-      new AntigravityAdapter(
-        () => new StreamingTransport(),
-        async () => ({ available: false, models: [] }),
-      ),
+      new AntigravityAdapter(() => new StreamingTransport()),
     ]);
     await runner.start();
     await backend.sendCommand({
@@ -180,29 +176,15 @@ describe("AgyCliTransport — robustez", () => {
 });
 
 describe("AntigravityAdapter.capabilities", () => {
-  it("refleja el descubrimiento de agy y marca lo no soportado en false", async () => {
-    const adapter = new AntigravityAdapter(
-      () => new StreamingTransport(),
-      async () => ({ available: true, models: [{ id: "gemini-x", label: "gemini-x" }] }),
-    );
-    const cap = await adapter.capabilities();
+  it("se marca no disponible (agy v1.0.10 no es automatizable headless)", async () => {
+    const cap = await new AntigravityAdapter(() => new StreamingTransport()).capabilities();
     expect(cap).toMatchObject({
       agentType: "antigravity",
-      available: true,
-      models: [{ id: "gemini-x", label: "gemini-x" }],
+      available: false,
+      models: [],
       supportsEffort: false,
       supportsPermissions: false,
       supportsUsage: false,
     });
-  });
-
-  it("si agy no está disponible, available=false y sin modelos", async () => {
-    const adapter = new AntigravityAdapter(
-      () => new StreamingTransport(),
-      async () => ({ available: false, models: [] }),
-    );
-    const cap = await adapter.capabilities();
-    expect(cap.available).toBe(false);
-    expect(cap.models).toEqual([]);
   });
 });
