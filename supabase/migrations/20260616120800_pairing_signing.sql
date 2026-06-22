@@ -1,4 +1,4 @@
--- Batuta · Firma de comandos (3/3) — el pairing entrega la clave pública
+-- Pulpo · Firma de comandos (3/3) — el pairing entrega la clave pública
 --
 -- La app genera un par Ed25519 (la privada nunca sale del dispositivo) y al
 -- emparejar registra su clave PÚBLICA. El runner la recibe en el poll y la cachea

@@ -1,4 +1,4 @@
-import type { Event } from "@batuta/protocol";
+import type { Event } from "@pulpo/protocol";
 import { describe, expect, it } from "vitest";
 import { appendEvents } from "./events";
 

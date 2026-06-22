@@ -1,11 +1,11 @@
 # Política de privacidad
 
-> **No es asesoría legal.** Describe cómo trata los datos el software Batuta tal
+> **No es asesoría legal.** Describe cómo trata los datos el software Pulpo tal
 > como se publica. Si lo operas para terceros, adapta y revisa esta política con un
 > abogado según tu jurisdicción (GDPR, CCPA, etc.).
 
-Batuta es **open source y self-host**: tú decides dónde corre el backend (tu
-instancia de Supabase) y el *runner* (tu PC). **Quien hospeda Batuta es el
+Pulpo es **open source y self-host**: tú decides dónde corre el backend (tu
+instancia de Supabase) y el *runner* (tu PC). **Quien hospeda Pulpo es el
 responsable del tratamiento de los datos.** Los autores del proyecto **no operan
 un servicio central** ni reciben tus datos.
 
@@ -38,7 +38,7 @@ un servicio central** ni reciben tus datos.
 
 ## 3. Telemetría
 
-**Batuta en sí no recoge telemetría ni analítica** y no envía datos a los autores.
+**Pulpo en sí no recoge telemetría ni analítica** y no envía datos a los autores.
 ⚠️ Sin embargo, los **agentes y CLIs de terceros** que ejecutes (p. ej. Claude
 Code, opencode) **pueden tener su propia telemetría**; revisa y configura la de
 cada uno por separado.
@@ -70,7 +70,7 @@ la [exención de responsabilidad](DISCLAIMER.md).
 
 ## 7. Menores
 
-Batuta no está dirigido a menores de edad y no recoge conscientemente sus datos.
+Pulpo no está dirigido a menores de edad y no recoge conscientemente sus datos.
 
 ## 8. Cambios
 

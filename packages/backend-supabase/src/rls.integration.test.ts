@@ -17,7 +17,7 @@ describe.skipIf(!hasEnv)("RLS — aislamiento entre usuarios (requiere Supabase 
   async function makeUserBackend(
     label: string,
   ): Promise<{ backend: SupabaseBackend; userId: string }> {
-    const email = `${label}-${Date.now()}-${Math.random().toString(36).slice(2)}@batuta.dev`;
+    const email = `${label}-${Date.now()}-${Math.random().toString(36).slice(2)}@pulpo.dev`;
     const { data, error } = await admin.auth.admin.createUser({
       email,
       password: PASSWORD,

@@ -1,4 +1,4 @@
--- Batuta · Cifrado e2e de diffs (3/3) — el pairing entrega la clave de cifrado
+-- Pulpo · Cifrado e2e de diffs (3/3) — el pairing entrega la clave de cifrado
 --
 -- Junto a la clave de FIRMA (Ed25519), la app registra al emparejar su clave de
 -- CIFRADO pública (X25519). El runner la recibe en el poll, la cachea y cifra los

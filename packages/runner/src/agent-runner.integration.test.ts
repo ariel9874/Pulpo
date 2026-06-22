@@ -4,7 +4,7 @@ import {
   claimPairing,
   createSupabaseBackend,
   type RunnerCredential,
-} from "@batuta/backend-supabase";
+} from "@pulpo/backend-supabase";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ClaudeCodeAdapter } from "./adapters/claude-code/index.js";
 import type {
@@ -56,7 +56,7 @@ describe.skipIf(!hasEnv)("AgentRunner echo (integración — commands/events por
     admin = createClient(URL!, SERVICE_KEY!, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const email = `agent-${Date.now()}-${Math.random().toString(36).slice(2)}@batuta.dev`;
+    const email = `agent-${Date.now()}-${Math.random().toString(36).slice(2)}@pulpo.dev`;
     const { data, error } = await admin.auth.admin.createUser({
       email,
       password: PASSWORD,

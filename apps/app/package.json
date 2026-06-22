@@ -1,5 +1,5 @@
 {
-  "name": "@batuta/app",
+  "name": "@pulpo/app",
   "version": "0.0.0",
   "private": true,
   "main": "index.ts",
@@ -12,8 +12,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@batuta/backend-supabase": "workspace:*",
-    "@batuta/protocol": "workspace:*",
+    "@pulpo/backend-supabase": "workspace:*",
+    "@pulpo/protocol": "workspace:*",
     "@expo/metro-runtime": "~4.0.1",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@supabase/supabase-js": "^2.48.1",

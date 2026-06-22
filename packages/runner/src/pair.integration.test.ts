@@ -2,8 +2,8 @@ import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { PairingClient, claimPairing } from "@batuta/backend-supabase";
-import { generateBoxKeyPair, generateSigningKeyPair } from "@batuta/protocol";
+import { PairingClient, claimPairing } from "@pulpo/backend-supabase";
+import { generateBoxKeyPair, generateSigningKeyPair } from "@pulpo/protocol";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { loadCredential, saveCredential } from "./credentials.js";
 
@@ -23,7 +23,7 @@ describe.skipIf(!hasEnv)("Pairing device-code (integración — requiere Supabas
     admin = createClient(URL!, SERVICE_KEY!, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const email = `pair-${Date.now()}-${Math.random().toString(36).slice(2)}@batuta.dev`;
+    const email = `pair-${Date.now()}-${Math.random().toString(36).slice(2)}@pulpo.dev`;
     const { data, error } = await admin.auth.admin.createUser({
       email,
       password: PASSWORD,
@@ -132,7 +132,7 @@ describe.skipIf(!hasEnv)("Pairing device-code (integración — requiere Supabas
 
     const path = join(
       tmpdir(),
-      `batuta-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      `pulpo-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       "credentials.json",
     );
     try {

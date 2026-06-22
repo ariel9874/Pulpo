@@ -1,4 +1,4 @@
-import { claimPairing } from "@batuta/backend-supabase";
+import { claimPairing } from "@pulpo/backend-supabase";
 import { normalizeDeviceCode } from "./device-code";
 import { getBoxPublicKey } from "./enc-key";
 import { setRunnerBoxPublic } from "./runner-keys";

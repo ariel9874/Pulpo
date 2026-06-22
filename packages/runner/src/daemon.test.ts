@@ -1,4 +1,4 @@
-import { MemoryBackend } from "@batuta/backend-memory";
+import { MemoryBackend } from "@pulpo/backend-memory";
 import { describe, expect, it } from "vitest";
 import { RunnerDaemon } from "./daemon.js";
 

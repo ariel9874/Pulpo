@@ -27,7 +27,7 @@ import {
   type Session,
   type Unsubscribe,
   type UpdateSessionInput,
-} from "@batuta/protocol";
+} from "@pulpo/protocol";
 
 export * from "./pairing.js";
 

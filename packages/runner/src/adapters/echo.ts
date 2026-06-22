@@ -1,4 +1,4 @@
-import type { AgentCapability } from "@batuta/protocol";
+import type { AgentCapability } from "@pulpo/protocol";
 import type { AgentAdapter, AgentSession, EmitFn, StartParams } from "../agent-adapter.js";
 
 /**

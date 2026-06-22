@@ -5,7 +5,7 @@ import {
   type EncryptedPayload,
   type Event,
   type Session,
-} from "@batuta/protocol";
+} from "@pulpo/protocol";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,

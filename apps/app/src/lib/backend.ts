@@ -1,4 +1,4 @@
-import { SupabaseBackend } from "@batuta/backend-supabase";
+import { SupabaseBackend } from "@pulpo/backend-supabase";
 import { supabase } from "./supabase";
 
 /**

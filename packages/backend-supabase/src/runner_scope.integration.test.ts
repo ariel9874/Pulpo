@@ -10,7 +10,7 @@ const hasEnv = Boolean(URL && SERVICE_KEY && ANON_KEY);
 
 const PASSWORD = "password-123";
 
-// Etapa 21 — mínimo privilegio: el token del runner (acotado por `batuta_machine_id`)
+// Etapa 21 — mínimo privilegio: el token del runner (acotado por `pulpo_machine_id`)
 // solo accede a SU máquina, aunque el usuario tenga varias. Requiere Supabase local.
 describe.skipIf(!hasEnv)("Mínimo privilegio del runner (token acotado por máquina)", () => {
   let admin: SupabaseClient;
@@ -37,7 +37,7 @@ describe.skipIf(!hasEnv)("Mínimo privilegio del runner (token acotado por máqu
     admin = createClient(URL!, SERVICE_KEY!, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const email = `scope-${Date.now()}-${Math.random().toString(36).slice(2)}@batuta.dev`;
+    const email = `scope-${Date.now()}-${Math.random().toString(36).slice(2)}@pulpo.dev`;
     const { data, error } = await admin.auth.admin.createUser({
       email,
       password: PASSWORD,

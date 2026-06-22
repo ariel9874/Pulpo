@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Command, Event } from "@batuta/protocol";
+import type { Command, Event } from "@pulpo/protocol";
 import { MemoryBackend } from "./index.js";
 
 /** Espera el primer valor entregado a un handler de suscripción. */

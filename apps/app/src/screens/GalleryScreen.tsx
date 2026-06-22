@@ -1,4 +1,4 @@
-import type { ArtifactKind, Event } from "@batuta/protocol";
+import type { ArtifactKind, Event } from "@pulpo/protocol";
 import { useEffect, useMemo, useState } from "react";
 import {
   FlatList,

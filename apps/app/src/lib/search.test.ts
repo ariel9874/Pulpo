@@ -1,4 +1,4 @@
-import type { Session } from "@batuta/protocol";
+import type { Session } from "@pulpo/protocol";
 import { describe, expect, it } from "vitest";
 import { filterSessions } from "./search";
 

@@ -44,7 +44,7 @@ async function* toSdkUserMessages(input: AsyncIterable<string>): AsyncIterable<u
  *   verdad. Se importa con un especificador no literal para no acoplar la
  *   compilación al paquete; si no está instalado, emite un error claro.
  * - **Credenciales:** usa las del host (ANTHROPIC_API_KEY o el login de Claude
- *   Code / suscripción). Batuta no las almacena.
+ *   Code / suscripción). Pulpo no las almacena.
  * - ⚠️ Capa marcada como interfaz no garantizada: verificada contra la doc del
  *   Agent SDK al implementar; se reaislaría aquí si el SDK cambia.
  */

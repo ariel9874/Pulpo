@@ -1,4 +1,4 @@
--- Batuta · Etapa 4 — Esquema inicial
+-- Pulpo · Etapa 4 — Esquema inicial
 --
 -- Tablas del modelo de datos (ver PLAN.md). Las columnas van en snake_case;
 -- el paquete backend-supabase (Etapa 5) las mapea a los tipos camelCase del

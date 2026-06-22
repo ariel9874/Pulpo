@@ -4,7 +4,7 @@ import type {
   DistributiveOmit,
   Event,
   Session,
-} from "@batuta/protocol";
+} from "@pulpo/protocol";
 
 /**
  * Un evento tal cual lo emite un adaptador: sin el envelope que pone el runner

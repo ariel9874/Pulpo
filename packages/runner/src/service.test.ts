@@ -11,9 +11,9 @@ import {
 
 const ctx: ServiceContext = {
   nodePath: "/usr/bin/node",
-  scriptPath: "/home/ariel/.batuta/cli.js",
-  workingDir: "/home/ariel/.batuta",
-  env: { BATUTA_HOME: "/home/ariel/.batuta" },
+  scriptPath: "/home/ariel/.pulpo/cli.js",
+  workingDir: "/home/ariel/.pulpo",
+  env: { PULPO_HOME: "/home/ariel/.pulpo" },
 };
 
 describe("supportedServicePlatform", () => {
@@ -33,7 +33,7 @@ describe("systemdUnit", () => {
   const unit = systemdUnit(ctx);
 
   it("arranca el runner con node + cli + run", () => {
-    expect(unit).toContain("ExecStart=/usr/bin/node /home/ariel/.batuta/cli.js run");
+    expect(unit).toContain("ExecStart=/usr/bin/node /home/ariel/.pulpo/cli.js run");
   });
 
   it("reintenta y arranca al iniciar sesión", () => {
@@ -42,7 +42,7 @@ describe("systemdUnit", () => {
   });
 
   it("inyecta las variables de entorno", () => {
-    expect(unit).toContain("Environment=BATUTA_HOME=/home/ariel/.batuta");
+    expect(unit).toContain("Environment=PULPO_HOME=/home/ariel/.pulpo");
   });
 });
 
@@ -61,7 +61,7 @@ describe("launchdPlist", () => {
   });
 
   it("incluye las variables de entorno", () => {
-    expect(plist).toContain("<key>BATUTA_HOME</key>");
+    expect(plist).toContain("<key>PULPO_HOME</key>");
   });
 
   it("sin env, no emite el bloque de variables", () => {

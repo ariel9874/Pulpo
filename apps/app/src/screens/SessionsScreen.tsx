@@ -1,4 +1,4 @@
-import { type Machine, type Session } from "@batuta/protocol";
+import { type Machine, type Session } from "@pulpo/protocol";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,

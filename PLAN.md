@@ -1,6 +1,6 @@
-# Batuta — Plan por etapas
+# Pulpo — Plan por etapas
 
-> **Batuta** (nombre provisional, cámbialo cuando quieras): una app open source para
+> **Pulpo** (nombre provisional, cámbialo cuando quieras): una app open source para
 > orquestar tus agentes de IA (Claude Code, Antigravity, Codex…) desde el móvil y la web,
 > mientras tu PC se queda encendida ejecutándolos. El móvil es el **control remoto**, no el IDE.
 
@@ -86,7 +86,7 @@ investigar en internet primero** y no asumir ni inventar.
 ### Las piezas (monorepo TypeScript con pnpm workspaces)
 
 ```
-batuta/
+pulpo/
 ├─ packages/
 │  ├─ protocol/          → tipos del modelo (Event, Command, Session…) + validadores (zod)
 │  │                       y la interfaz BackendPort (la capa de abstracción)

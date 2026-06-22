@@ -1,6 +1,6 @@
 // Metro para un monorepo pnpm: vigila la raíz del workspace, busca módulos en
 // ambos node_modules y resuelve los "exports" de package.json (nuestros paquetes
-// @batuta/* exponen su build en dist).
+// @pulpo/* exponen su build en dist).
 const { getDefaultConfig } = require("expo/metro-config");
 const path = require("path");
 

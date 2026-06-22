@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Batuta",
-    "slug": "batuta",
-    "scheme": "batuta",
+    "name": "Pulpo",
+    "slug": "pulpo",
+    "scheme": "pulpo",
     "version": "0.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",

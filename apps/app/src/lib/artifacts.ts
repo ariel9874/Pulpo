@@ -1,4 +1,4 @@
-import type { Artifact } from "@batuta/protocol";
+import type { Artifact } from "@pulpo/protocol";
 import { Linking } from "react-native";
 import { supabase } from "./supabase";
 

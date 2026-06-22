@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { generateBoxKeyPair } from "@batuta/protocol";
+import { generateBoxKeyPair } from "@pulpo/protocol";
 
-const STORAGE_KEY = "batuta.boxKey";
+const STORAGE_KEY = "pulpo.boxKey";
 
 interface BoxKeyPair {
   publicKey: string;

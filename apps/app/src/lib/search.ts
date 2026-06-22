@@ -1,4 +1,4 @@
-import type { Session } from "@batuta/protocol";
+import type { Session } from "@pulpo/protocol";
 
 /** Normaliza para buscar sin distinguir mayúsculas ni acentos (quita diacríticos). */
 function norm(s: string): string {

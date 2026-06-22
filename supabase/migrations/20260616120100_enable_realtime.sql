@@ -1,4 +1,4 @@
--- Batuta · Etapa 4 — Habilitar Realtime
+-- Pulpo · Etapa 4 — Habilitar Realtime
 --
 -- Realtime entrega los cambios de Postgres a runner y app (es "el cable").
 -- Suscribimos events y commands (el flujo principal) y también sessions y

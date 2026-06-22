@@ -1,4 +1,4 @@
-import { signCommand, type SendCommandInput } from "@batuta/protocol";
+import { signCommand, type SendCommandInput } from "@pulpo/protocol";
 import { backend } from "./backend";
 import { getOrCreateSigningKey } from "./signing-key";
 

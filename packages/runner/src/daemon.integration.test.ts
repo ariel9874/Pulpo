@@ -4,8 +4,8 @@ import {
   claimPairing,
   createSupabaseBackend,
   type RunnerCredential,
-} from "@batuta/backend-supabase";
-import { isMachineOnline, type Machine } from "@batuta/protocol";
+} from "@pulpo/backend-supabase";
+import { isMachineOnline, type Machine } from "@pulpo/protocol";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { RunnerDaemon } from "./daemon.js";
 
@@ -25,7 +25,7 @@ describe.skipIf(!hasEnv)("RunnerDaemon (integración — credencial real)", () =
     admin = createClient(URL!, SERVICE_KEY!, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const email = `daemon-${Date.now()}-${Math.random().toString(36).slice(2)}@batuta.dev`;
+    const email = `daemon-${Date.now()}-${Math.random().toString(36).slice(2)}@pulpo.dev`;
     const { data, error } = await admin.auth.admin.createUser({
       email,
       password: PASSWORD,

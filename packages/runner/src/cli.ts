@@ -2,7 +2,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createSupabaseBackend } from "@batuta/backend-supabase";
+import { createSupabaseBackend } from "@pulpo/backend-supabase";
 import { AntigravityAdapter } from "./adapters/antigravity/index.js";
 import { ClaudeCodeAdapter } from "./adapters/claude-code/index.js";
 import { EchoAdapter } from "./adapters/echo.js";
@@ -14,10 +14,10 @@ import { pair } from "./pair.js";
 import { installService, serviceStatus, uninstallService, type ServiceContext } from "./service.js";
 
 async function runPair(): Promise<void> {
-  const url = process.env.BATUTA_SUPABASE_URL;
-  const anonKey = process.env.BATUTA_SUPABASE_ANON_KEY;
+  const url = process.env.PULPO_SUPABASE_URL;
+  const anonKey = process.env.PULPO_SUPABASE_ANON_KEY;
   if (!url || !anonKey) {
-    console.error("Falta configurar BATUTA_SUPABASE_URL y BATUTA_SUPABASE_ANON_KEY.");
+    console.error("Falta configurar PULPO_SUPABASE_URL y PULPO_SUPABASE_ANON_KEY.");
     process.exit(1);
   }
   const credential = await pair({ url, anonKey });
@@ -28,7 +28,7 @@ async function runPair(): Promise<void> {
 async function runDaemon(): Promise<void> {
   const credential = await loadCredential();
   if (!credential) {
-    console.error("No hay credencial. Ejecuta 'batuta-runner pair' primero.");
+    console.error("No hay credencial. Ejecuta 'pulpo-runner pair' primero.");
     process.exit(1);
   }
   const backend = createSupabaseBackend(credential.url, credential.anonKey, {
@@ -72,12 +72,12 @@ async function runDaemon(): Promise<void> {
 }
 
 async function runService(action: string | undefined): Promise<void> {
-  const home = process.env.BATUTA_HOME ?? join(homedir(), ".batuta");
+  const home = process.env.PULPO_HOME ?? join(homedir(), ".pulpo");
   const ctx: ServiceContext = {
     nodePath: process.execPath,
     scriptPath: fileURLToPath(import.meta.url),
     workingDir: home,
-    ...(process.env.BATUTA_HOME ? { env: { BATUTA_HOME: process.env.BATUTA_HOME } } : {}),
+    ...(process.env.PULPO_HOME ? { env: { PULPO_HOME: process.env.PULPO_HOME } } : {}),
   };
   if (action === "install") return installService(ctx);
   if (action === "uninstall") return uninstallService();
@@ -85,7 +85,7 @@ async function runService(action: string | undefined): Promise<void> {
     serviceStatus();
     return;
   }
-  console.error("Uso: batuta-runner service <install|uninstall|status>");
+  console.error("Uso: pulpo-runner service <install|uninstall|status>");
   process.exit(1);
 }
 
@@ -95,8 +95,8 @@ async function main(): Promise<void> {
   if (command === "run") return runDaemon();
   if (command === "service") return runService(process.argv[3]);
 
-  console.log("Batuta runner");
-  console.log("Uso: batuta-runner <pair|run|service>");
+  console.log("Pulpo runner");
+  console.log("Uso: pulpo-runner <pair|run|service>");
   console.log("  pair                 empareja esta PC con tu cuenta");
   console.log("  run                  arranca el runner (en primer plano)");
   console.log("  service install      instala el runner como servicio del sistema");

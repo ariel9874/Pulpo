@@ -1,11 +1,11 @@
-import type { DevicePlatform } from "@batuta/protocol";
+import type { DevicePlatform } from "@pulpo/protocol";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { backend } from "./backend";
 
 /** Topic de ntfy.sh del usuario (push dev). Coincide con el del trigger en Postgres. */
 export function ntfyTopicFor(userId: string): string {
-  return `batuta-${userId.replace(/-/g, "")}`;
+  return `pulpo-${userId.replace(/-/g, "")}`;
 }
 
 function currentPlatform(): DevicePlatform {

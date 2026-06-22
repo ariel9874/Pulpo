@@ -1,4 +1,4 @@
-import { isMachineOnline, type Machine, type Session } from "@batuta/protocol";
+import { isMachineOnline, type Machine, type Session } from "@pulpo/protocol";
 
 export interface MachineGroup {
   /** La máquina del grupo, o `null` para sesiones cuya máquina ya no está en la lista. */

@@ -1,4 +1,4 @@
-import { PairingClient, type RunnerCredential } from "@batuta/backend-supabase";
+import { PairingClient, type RunnerCredential } from "@pulpo/backend-supabase";
 import { defaultCredentialPath, saveCredential } from "./credentials.js";
 
 export interface PairOptions {
@@ -13,7 +13,7 @@ export interface PairOptions {
 }
 
 function printCode(deviceCode: string): void {
-  console.log("\n  Empareja esta PC: abre la app de Batuta e introduce el código\n");
+  console.log("\n  Empareja esta PC: abre la app de Pulpo e introduce el código\n");
   console.log(`      ┌────────────┐`);
   console.log(`      │  ${deviceCode}  │`);
   console.log(`      └────────────┘\n`);

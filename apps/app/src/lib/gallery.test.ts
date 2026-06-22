@@ -1,4 +1,4 @@
-import type { Artifact, Event } from "@batuta/protocol";
+import type { Artifact, Event } from "@pulpo/protocol";
 import { describe, expect, it } from "vitest";
 import { collectArtifacts, filterByKind, formatBytes, kindCounts } from "./gallery";
 

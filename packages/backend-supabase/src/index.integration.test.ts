@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { Event, Session } from "@batuta/protocol";
+import type { Event, Session } from "@pulpo/protocol";
 import { SupabaseBackend } from "./index.js";
 
 const URL = process.env.SUPABASE_URL;
@@ -44,7 +44,7 @@ describe.skipIf(!hasEnv)("SupabaseBackend (integración — requiere Supabase lo
     admin = createClient(URL!, SERVICE_KEY!, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    email = `it-${Date.now()}-${Math.random().toString(36).slice(2)}@batuta.dev`;
+    email = `it-${Date.now()}-${Math.random().toString(36).slice(2)}@pulpo.dev`;
     const { data, error } = await admin.auth.admin.createUser({
       email,
       password: PASSWORD,

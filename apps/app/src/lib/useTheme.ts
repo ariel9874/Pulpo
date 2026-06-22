@@ -10,7 +10,7 @@ import {
   type ThemePreference,
 } from "./theme";
 
-const STORAGE_KEY = "batuta.theme";
+const STORAGE_KEY = "pulpo.theme";
 
 export interface ThemeState {
   scheme: Scheme;

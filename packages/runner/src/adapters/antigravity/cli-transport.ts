@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import type { AgentModel } from "@batuta/protocol";
+import type { AgentModel } from "@pulpo/protocol";
 import type {
   AntigravityMessage,
   AntigravityRunOptions,
@@ -12,7 +12,7 @@ export interface AgyCliOptions {
   /**
    * Auto-aprobar acciones (`--yes`). El CLI headless lo necesita para no
    * bloquearse en confirmaciones. ⚠️ Implica que NO hay gating de permisos por la
-   * app: Antigravity ejecuta sus acciones sin pedir aprobación en Batuta (límite
+   * app: Antigravity ejecuta sus acciones sin pedir aprobación en Pulpo (límite
    * de la superficie CLI; ver SECURITY.md / README). Por seguridad, por defecto
    * está desactivado — actívalo a sabiendas para ejecución desatendida.
    */

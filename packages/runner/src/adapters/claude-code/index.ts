@@ -1,5 +1,5 @@
 import { createRequire } from "node:module";
-import type { AgentCapability } from "@batuta/protocol";
+import type { AgentCapability } from "@pulpo/protocol";
 import type { AgentAdapter, AgentEvent, AgentSession, StartParams } from "../../agent-adapter.js";
 import { MessageQueue } from "../../message-queue.js";
 import { SdkClaudeTransport, type SdkTransportOptions } from "./sdk-transport.js";

@@ -1,4 +1,4 @@
--- Batuta · Etapa 19 — Disparar push en eventos clave (vía ntfy.sh)
+-- Pulpo · Etapa 19 — Disparar push en eventos clave (vía ntfy.sh)
 --
 -- Sin Edge Functions ni credenciales: un trigger en `events` publica a ntfy.sh
 -- (usando pg_net) cuando el agente pide permiso o termina una tarea. Cada usuario
@@ -11,7 +11,7 @@ create or replace function public.notify_push()
 returns trigger language plpgsql security definer
 set search_path = public, extensions, net as $$
 declare
-  v_topic   text := 'batuta-' || replace(new.user_id::text, '-', '');
+  v_topic   text := 'pulpo-' || replace(new.user_id::text, '-', '');
   v_title   text;
   v_message text;
 begin

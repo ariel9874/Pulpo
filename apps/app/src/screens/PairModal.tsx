@@ -54,7 +54,7 @@ export function PairModal({
         <View style={styles.sheet}>
           <Text style={styles.title}>Emparejar una PC</Text>
           <Text style={styles.muted}>
-            En tu PC ejecuta «batuta-runner pair» y escribe aquí el código que muestra.
+            En tu PC ejecuta «pulpo-runner pair» y escribe aquí el código que muestra.
           </Text>
           <TextInput
             style={styles.input}

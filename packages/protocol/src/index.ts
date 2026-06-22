@@ -1,5 +1,5 @@
 /**
- * @batuta/protocol — el contrato que todos los componentes hablan.
+ * @pulpo/protocol — el contrato que todos los componentes hablan.
  *
  * El runner emite `Event`; la app emite `Command`. Ambos validan en los bordes
  * con zod para que nunca entre basura a la BD. Cada evento/comando lleva

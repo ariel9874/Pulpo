@@ -1,6 +1,6 @@
 # supabase/
 
-Migraciones SQL, políticas RLS y Edge Functions de Batuta.
+Migraciones SQL, políticas RLS y Edge Functions de Pulpo.
 
 ## Migraciones
 

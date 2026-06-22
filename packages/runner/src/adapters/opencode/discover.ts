@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import type { AgentModel } from "@batuta/protocol";
+import type { AgentModel } from "@pulpo/protocol";
 
 export interface OpencodeDiscovery {
   /** ¿`opencode` está instalado y responde? */

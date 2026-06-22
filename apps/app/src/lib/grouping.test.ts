@@ -1,4 +1,4 @@
-import type { Machine, Session } from "@batuta/protocol";
+import type { Machine, Session } from "@pulpo/protocol";
 import { describe, expect, it } from "vitest";
 import { groupByMachine } from "./grouping";
 

@@ -32,4 +32,4 @@ Thumbs.db
 coverage/
 
 # Runner local state (credenciales del pairing, etc.)
-.batuta/
+.pulpo/

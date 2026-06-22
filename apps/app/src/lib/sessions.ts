@@ -1,4 +1,4 @@
-import type { Session } from "@batuta/protocol";
+import type { Session } from "@pulpo/protocol";
 
 /** Inserta o reemplaza una sesión por id, dejando la lista ordenada (más nueva primero). */
 export function upsertSession(sessions: Session[], incoming: Session): Session[] {

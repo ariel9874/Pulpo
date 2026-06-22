@@ -1,13 +1,13 @@
--- Batuta · Endurecimiento — acotar Storage `artifacts` por máquina
+-- Pulpo · Endurecimiento — acotar Storage `artifacts` por máquina
 --
 -- Las políticas de la Etapa 15 filtraban los artifacts solo por carpeta
 -- `=<user_id>`. Eso dejaba un hueco respecto al mínimo privilegio de la Etapa 21:
--- un token de runner robado (acotado a SU máquina por `batuta_machine_id` en el
+-- un token de runner robado (acotado a SU máquina por `pulpo_machine_id` en el
 -- resto de tablas) podía, sin embargo, leer/escribir/borrar los artifacts de
 -- TODAS las máquinas del usuario, porque Storage no miraba la máquina.
 --
 -- Aquí lo cerramos. La ruta es `<user_id>/<session_id>/<archivo>`, así que el
--- 2º segmento es el session_id. Si el token trae `batuta_machine_id` (es un
+-- 2º segmento es el session_id. Si el token trae `pulpo_machine_id` (es un
 -- runner) → solo accede a objetos cuya sesión pertenece a SU máquina. Si no lo
 -- trae (es la app) → sigue viendo todo lo suyo, como antes. Comparamos el
 -- segmento como texto contra `id::text` para no castear rutas arbitrarias a uuid

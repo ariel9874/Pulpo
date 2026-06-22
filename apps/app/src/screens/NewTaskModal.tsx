@@ -1,4 +1,4 @@
-import type { AgentCapability, AgentType, EffortLevel, Machine } from "@batuta/protocol";
+import type { AgentCapability, AgentType, EffortLevel, Machine } from "@pulpo/protocol";
 import { useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { sendSignedCommand } from "../lib/commands";

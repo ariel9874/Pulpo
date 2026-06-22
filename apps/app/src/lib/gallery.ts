@@ -1,4 +1,4 @@
-import type { Artifact, ArtifactKind, Event } from "@batuta/protocol";
+import type { Artifact, ArtifactKind, Event } from "@pulpo/protocol";
 
 export interface GalleryItem {
   /** Id del evento que trajo el artifact (clave estable en listas). */

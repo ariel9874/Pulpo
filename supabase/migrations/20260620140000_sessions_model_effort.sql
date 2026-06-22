@@ -1,4 +1,4 @@
--- Batuta · Selección de modelo y razonamiento por sesión (Fase B)
+-- Pulpo · Selección de modelo y razonamiento por sesión (Fase B)
 --
 -- La app elige modelo y nivel de razonamiento (effort) al crear la tarea; el
 -- runner los lee de la sesión y los pasa al Agent SDK. Columnas opcionales: las

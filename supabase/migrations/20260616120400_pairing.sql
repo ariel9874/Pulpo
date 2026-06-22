@@ -1,4 +1,4 @@
--- Batuta · Etapa 7 — Emparejar la PC (device-code pairing)
+-- Pulpo · Etapa 7 — Emparejar la PC (device-code pairing)
 --
 -- Flujo:
 --   1. El runner (clave anon) llama pairing_start() → recibe {device_code, device_secret}
@@ -9,7 +9,7 @@
 --      y lo guarda en disco.
 --
 -- El token es un JWT acotado al rol authenticated del usuario (NUNCA el service_role).
--- Lleva además batuta_machine_id para acotarlo por máquina en el endurecimiento (Etapa 21).
+-- Lleva además pulpo_machine_id para acotarlo por máquina en el endurecimiento (Etapa 21).
 -- Todo vive en funciones SECURITY DEFINER (owner postgres); la tabla está bajo RLS sin
 -- políticas, así que nadie la toca directo.
 
@@ -48,10 +48,10 @@ declare
                     'sub', p_user::text,
                     'role', 'authenticated',
                     'aud', 'authenticated',
-                    'iss', 'batuta-pairing',
+                    'iss', 'pulpo-pairing',
                     'iat', extract(epoch from now())::int,
                     'exp', extract(epoch from now() + interval '365 days')::int,
-                    'batuta_machine_id', p_machine::text
+                    'pulpo_machine_id', p_machine::text
                   )::text, 'utf8'));
   signing_input text := header || '.' || payload;
   sig           text := public._b64url(hmac(signing_input, secret, 'sha256'));

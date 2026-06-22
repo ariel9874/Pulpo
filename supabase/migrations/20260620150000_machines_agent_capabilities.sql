@@ -1,4 +1,4 @@
--- Batuta · Capacidades de agentes por máquina (catálogo dinámico, opción B)
+-- Pulpo · Capacidades de agentes por máquina (catálogo dinámico, opción B)
 --
 -- El runner descubre qué agentes están instalados/logueados en su PC y publica
 -- sus capacidades (modelos disponibles, si soportan effort/permisos/uso) en esta

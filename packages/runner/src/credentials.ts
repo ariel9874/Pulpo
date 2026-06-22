@@ -1,13 +1,13 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import type { RunnerCredential } from "@batuta/backend-supabase";
+import type { RunnerCredential } from "@pulpo/backend-supabase";
 
 export type { RunnerCredential };
 
-/** Ruta del archivo de credenciales del runner (configurable con BATUTA_HOME). */
+/** Ruta del archivo de credenciales del runner (configurable con PULPO_HOME). */
 export function defaultCredentialPath(): string {
-  const home = process.env.BATUTA_HOME ?? join(homedir(), ".batuta");
+  const home = process.env.PULPO_HOME ?? join(homedir(), ".pulpo");
   return join(home, "credentials.json");
 }
 

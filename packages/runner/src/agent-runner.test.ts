@@ -1,11 +1,11 @@
-import { MemoryBackend } from "@batuta/backend-memory";
+import { MemoryBackend } from "@pulpo/backend-memory";
 import {
   boxOpen,
   generateBoxKeyPair,
   generateSigningKeyPair,
   openSealed,
   signCommand,
-} from "@batuta/protocol";
+} from "@pulpo/protocol";
 import { describe, expect, it } from "vitest";
 import type { AgentAdapter, AgentSession, StartParams } from "./agent-adapter.js";
 import { EchoAdapter } from "./adapters/echo.js";

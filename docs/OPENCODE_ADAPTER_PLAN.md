@@ -1,6 +1,6 @@
 # Plan — Adaptador opencode (tier rico)
 
-Plan paso a paso para añadir **opencode** como agente de Batuta, en pasos pequeños y
+Plan paso a paso para añadir **opencode** como agente de Pulpo, en pasos pequeños y
 verificables. Cada paso termina con su verificación (`pnpm build` / `pnpm test` /
 `eslint`). Los checkpoints de commit van marcados con 💾.
 

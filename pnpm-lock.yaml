@@ -38,15 +38,15 @@ importers:
 
   apps/app:
     dependencies:
-      '@batuta/backend-supabase':
-        specifier: workspace:*
-        version: link:../../packages/backend-supabase
-      '@batuta/protocol':
-        specifier: workspace:*
-        version: link:../../packages/protocol
       '@expo/metro-runtime':
         specifier: ~4.0.1
         version: 4.0.1(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@19.2.17)(react@18.3.1))
+      '@pulpo/backend-supabase':
+        specifier: workspace:*
+        version: link:../../packages/backend-supabase
+      '@pulpo/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
       '@react-native-async-storage/async-storage':
         specifier: 1.23.1
         version: 1.23.1(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@19.2.17)(react@18.3.1))
@@ -90,13 +90,13 @@ importers:
 
   packages/backend-memory:
     dependencies:
-      '@batuta/protocol':
+      '@pulpo/protocol':
         specifier: workspace:*
         version: link:../protocol
 
   packages/backend-supabase:
     dependencies:
-      '@batuta/protocol':
+      '@pulpo/protocol':
         specifier: workspace:*
         version: link:../protocol
       '@supabase/supabase-js':
@@ -120,17 +120,17 @@ importers:
       '@anthropic-ai/claude-agent-sdk':
         specifier: ^0.3.183
         version: 0.3.183(@anthropic-ai/sdk@0.105.0(zod@3.25.76))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(zod@3.25.76)
-      '@batuta/backend-supabase':
-        specifier: workspace:*
-        version: link:../backend-supabase
-      '@batuta/protocol':
-        specifier: workspace:*
-        version: link:../protocol
       '@opencode-ai/sdk':
         specifier: ^1.17.9
         version: 1.17.9
+      '@pulpo/backend-supabase':
+        specifier: workspace:*
+        version: link:../backend-supabase
+      '@pulpo/protocol':
+        specifier: workspace:*
+        version: link:../protocol
     devDependencies:
-      '@batuta/backend-memory':
+      '@pulpo/backend-memory':
         specifier: workspace:*
         version: link:../backend-memory
       '@supabase/supabase-js':

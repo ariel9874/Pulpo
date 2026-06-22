@@ -1,4 +1,4 @@
--- Batuta · Etapa 5 — Privilegios de tablas para los roles de Supabase
+-- Pulpo · Etapa 5 — Privilegios de tablas para los roles de Supabase
 --
 -- En Supabase el patrón es: conceder privilegios a los roles (GRANT) y luego
 -- restringir QUÉ filas ve cada usuario con RLS (Etapa 6). Sin estos GRANT, hasta

@@ -24,7 +24,7 @@ import {
   type SubscriptionStatusHandler,
   type Unsubscribe,
   type UpdateSessionInput,
-} from "@batuta/protocol";
+} from "@pulpo/protocol";
 
 export interface MemoryBackendOptions {
   /** Usuario "autenticado" del fake. Por defecto un UUID fijo. */

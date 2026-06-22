@@ -10,7 +10,7 @@ import {
   type Payload,
   type Session,
   type Unsubscribe,
-} from "@batuta/protocol";
+} from "@pulpo/protocol";
 import type {
   AgentAdapter,
   AgentSession,

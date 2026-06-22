@@ -1,4 +1,4 @@
--- Batuta · Etapa 6 — Row Level Security (NO opcional)
+-- Pulpo · Etapa 6 — Row Level Security (NO opcional)
 --
 -- Cada usuario solo ve y escribe lo suyo: user_id = auth.uid(). Además, al
 -- insertar filas que referencian otra tabla (eventos→sesión, sesión→máquina…)

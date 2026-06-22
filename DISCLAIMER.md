@@ -5,8 +5,8 @@
 > abogado revise este documento, la [política de privacidad](PRIVACY.md) y la
 > [licencia](LICENSE) según tu jurisdicción.
 
-Batuta es software **open source** distribuido bajo licencia [MIT](LICENSE). Al
-usar, instalar, ejecutar o distribuir Batuta aceptas los términos de la licencia
+Pulpo es software **open source** distribuido bajo licencia [MIT](LICENSE). Al
+usar, instalar, ejecutar o distribuir Pulpo aceptas los términos de la licencia
 MIT y los avisos de este documento. **Si no estás de acuerdo, no lo uses.**
 
 ## 1. Sin garantía / "TAL CUAL"
@@ -14,7 +14,7 @@ MIT y los avisos de este documento. **Si no estás de acuerdo, no lo uses.**
 El software se entrega **"TAL CUAL" ("AS IS")**, sin garantías de ningún tipo,
 expresas o implícitas, incluidas —sin limitarse a— las de comerciabilidad,
 idoneidad para un fin particular, no infracción, disponibilidad, seguridad o
-ausencia de errores. **Usas Batuta bajo tu propio riesgo.**
+ausencia de errores. **Usas Pulpo bajo tu propio riesgo.**
 
 ## 2. Limitación de responsabilidad
 
@@ -27,7 +27,7 @@ cómputo), aunque se haya advertido de su posibilidad.
 
 ## 3. Naturaleza del software: ejecuta acciones en tu equipo
 
-⚠️ **Lee esto con atención.** Batuta orquesta **agentes de IA** que pueden
+⚠️ **Lee esto con atención.** Pulpo orquesta **agentes de IA** que pueden
 **ejecutar comandos, correr código, leer, crear, modificar y borrar archivos** en
 la PC donde corre el *runner*. Esas acciones pueden ser **destructivas o
 irreversibles**. En particular:
@@ -50,19 +50,19 @@ licencias del contenido generado **antes de usarlo, publicarlo o distribuirlo**.
 
 ## 5. Servicios de terceros y sus términos
 
-Batuta se **integra** con servicios y agentes de terceros (por ejemplo, modelos y
+Pulpo se **integra** con servicios y agentes de terceros (por ejemplo, modelos y
 herramientas de IA, proveedores de backend, notificaciones push). **Tú aportas tus
 propias credenciales/claves** y eres responsable de:
 
 - Cumplir los **Términos de Servicio** y políticas de uso de cada proveedor que
   conectes.
 - Los **costos** que genere tu uso de esos servicios.
-- Los datos que decidas enviarles. Batuta no controla ni responde por esos
+- Los datos que decidas enviarles. Pulpo no controla ni responde por esos
   servicios, su disponibilidad, su facturación ni su tratamiento de datos.
 
 ## 6. No afiliación y marcas de terceros
 
-Batuta es un proyecto **independiente**. **No está afiliado, patrocinado ni
+Pulpo es un proyecto **independiente**. **No está afiliado, patrocinado ni
 respaldado** por Anthropic, Google, OpenAI, SST (opencode), Supabase, ni por
 ningún otro tercero. Los nombres y marcas (p. ej. *Claude*, *Claude Code*,
 *Antigravity*, *Gemini*, *opencode*, *Supabase*) son **propiedad de sus
@@ -72,7 +72,7 @@ compatibilidad o interoperabilidad, conforme al *nominative fair use*. Su menci�
 
 ## 7. Uso aceptable
 
-No uses Batuta para actividades **ilegales, dañinas o no autorizadas**, ni para
+No uses Pulpo para actividades **ilegales, dañinas o no autorizadas**, ni para
 acceder a sistemas sin permiso, vulnerar la seguridad de terceros, ni infringir
 derechos. El uso para pruebas de seguridad debe contar con **autorización
 explícita** del sistema objetivo. Cumplir las leyes aplicables es tu
@@ -82,12 +82,12 @@ responsabilidad, incluidas las de **exportación** y **protección de datos**.
 
 Aceptas **mantener indemnes** a los autores y contribuidores frente a cualquier
 reclamación, daño, pérdida o gasto (incluidos honorarios legales razonables) que
-surja de tu uso de Batuta, de tu incumplimiento de estos avisos o de la ley, o de
+surja de tu uso de Pulpo, de tu incumplimiento de estos avisos o de la ley, o de
 las acciones de los agentes que ejecutes.
 
 ## 9. Sin asesoría profesional
 
-Batuta y su contenido no constituyen asesoría legal, financiera, de seguridad ni
+Pulpo y su contenido no constituyen asesoría legal, financiera, de seguridad ni
 profesional de ningún tipo.
 
 ## 10. Cambios

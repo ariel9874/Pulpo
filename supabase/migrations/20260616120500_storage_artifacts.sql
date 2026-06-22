@@ -1,4 +1,4 @@
--- Batuta · Etapa 15 — Storage para recursos generados por la IA
+-- Pulpo · Etapa 15 — Storage para recursos generados por la IA
 --
 -- Bucket privado "artifacts". Convención de ruta: <user_id>/<session_id>/<archivo>.
 -- RLS por usuario: cada quien solo accede a su propia carpeta. La app resuelve

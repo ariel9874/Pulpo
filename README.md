@@ -1,11 +1,11 @@
-# Batuta
+# Pulpo
 
 **Orquesta tus agentes de IA desde el móvil y la web, mientras tu PC los ejecuta.**
 
-Batuta es una app **open source** que convierte tu teléfono en el **control remoto**
-de los agentes de IA que corren en tu computadora. Como un director con su batuta:
-tú marcas la tarea desde donde estés, y tu PC —siempre encendida— hace el trabajo.
-El móvil **no es el IDE**; es el mando.
+Pulpo es una app **open source** que convierte tu teléfono en el **control remoto**
+de los agentes de IA que corren en tu computadora. Como un pulpo que mueve varios
+brazos a la vez: coordinas varios agentes desde donde estés, y tu PC —siempre
+encendida— hace el trabajo. El móvil **no es el IDE**; es el mando.
 
 > Estado: en construcción. Plan por etapas en [PLAN.md](PLAN.md).
 
@@ -73,7 +73,7 @@ Para levantarlo de punta a punta (Supabase + emparejar el runner + la app), sigu
 - Modelo de amenazas y mitigaciones: [SECURITY.md](SECURITY.md)
 - Tratamiento de datos: [PRIVACY.md](PRIVACY.md)
 
-> ⚠️ Batuta ejecuta acciones de agentes de IA (comandos, edición de archivos) en tu
+> ⚠️ Pulpo ejecuta acciones de agentes de IA (comandos, edición de archivos) en tu
 > PC. Pueden ser **destructivas**. Úsalo en un entorno acotado, con copias de
 > seguridad, y revisa la [exención de responsabilidad](DISCLAIMER.md).
 

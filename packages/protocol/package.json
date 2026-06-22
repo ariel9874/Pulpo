@@ -1,5 +1,5 @@
 {
-  "name": "@batuta/protocol",
+  "name": "@pulpo/protocol",
   "version": "0.0.0",
   "private": true,
   "type": "module",

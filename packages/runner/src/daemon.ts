@@ -1,4 +1,4 @@
-import type { BackendPort } from "@batuta/protocol";
+import type { BackendPort } from "@pulpo/protocol";
 
 export interface RunnerDaemonOptions {
   /** Cada cuánto manda heartbeat (ms). Por defecto 15 s. */

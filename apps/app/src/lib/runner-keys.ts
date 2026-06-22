@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const PREFIX = "batuta.runnerBoxPublic.";
+const PREFIX = "pulpo.runnerBoxPublic.";
 
 /**
  * Clave pública de cifrado del runner de una máquina, anclada al emparejar. La

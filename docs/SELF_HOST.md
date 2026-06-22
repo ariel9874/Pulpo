@@ -1,6 +1,6 @@
-# Self-host de Batuta
+# Self-host de Pulpo
 
-Batuta es tuyo de punta a punta: el runner corre en tu PC y el backend puede ser
+Pulpo es tuyo de punta a punta: el runner corre en tu PC y el backend puede ser
 tu propio Supabase. Gracias a la capa de abstracción `BackendPort`, la app y el
 runner no saben si hablan con Supabase Cloud o con uno autohospedado — solo
 cambian las variables de entorno.
@@ -11,34 +11,34 @@ El objetivo: instalas el runner como servicio, reinicias la PC y vuelve solo,
 listo para recibir órdenes desde el móvil.
 
 ```bash
-# 1) Empareja una vez (guarda la credencial en ~/.batuta/credentials.json)
-batuta-runner pair
+# 1) Empareja una vez (guarda la credencial en ~/.pulpo/credentials.json)
+pulpo-runner pair
 
 # 2) Instálalo como servicio del sistema (arranca al iniciar sesión y reintenta)
-batuta-runner service install
+pulpo-runner service install
 
 # Estado / quitar
-batuta-runner service status
-batuta-runner service uninstall
+pulpo-runner service status
+pulpo-runner service uninstall
 ```
 
 Qué hace `service install` según el sistema:
 
 | SO          | Mecanismo                                                | Dónde queda                                      |
 | ----------- | -------------------------------------------------------- | ------------------------------------------------ |
-| **Linux**   | unit de **systemd** (modo usuario), `Restart=on-failure` | `~/.config/systemd/user/batuta-runner.service`   |
-| **macOS**   | **LaunchAgent** de launchd, `RunAtLoad` + `KeepAlive`    | `~/Library/LaunchAgents/dev.batuta.runner.plist` |
-| **Windows** | **Tarea programada** (`schtasks`) al iniciar sesión      | Programador de tareas, tarea `batuta-runner`     |
+| **Linux**   | unit de **systemd** (modo usuario), `Restart=on-failure` | `~/.config/systemd/user/pulpo-runner.service`   |
+| **macOS**   | **LaunchAgent** de launchd, `RunAtLoad` + `KeepAlive`    | `~/Library/LaunchAgents/dev.pulpo.runner.plist` |
+| **Windows** | **Tarea programada** (`schtasks`) al iniciar sesión      | Programador de tareas, tarea `pulpo-runner`     |
 
 - **Linux sin iniciar sesión:** para que arranque al encender (sin login), habilita
   _linger_: `loginctl enable-linger $USER`.
-- El servicio ejecuta `batuta-runner run`, que carga la credencial de
-  `~/.batuta` (o de `BATUTA_HOME` si lo personalizaste — el instalador propaga esa
+- El servicio ejecuta `pulpo-runner run`, que carga la credencial de
+  `~/.pulpo` (o de `PULPO_HOME` si lo personalizaste — el instalador propaga esa
   variable al servicio).
 
 ## 2. Supabase autohospedado
 
-El backend de Batuta son migraciones SQL estándar + Realtime + Auth + Storage. Para
+El backend de Pulpo son migraciones SQL estándar + Realtime + Auth + Storage. Para
 correrlo tú mismo:
 
 1. **Levanta Supabase.** En local/desarrollo basta el CLI: `supabase start`. Para
@@ -62,8 +62,8 @@ correrlo tú mismo:
    EXPO_PUBLIC_SUPABASE_ANON_KEY=...   # anon key
 
    # Runner (para 'pair')
-   BATUTA_SUPABASE_URL=...
-   BATUTA_SUPABASE_ANON_KEY=...
+   PULPO_SUPABASE_URL=...
+   PULPO_SUPABASE_ANON_KEY=...
    ```
 
 5. **Push (opcional).** El trigger de push publica a [ntfy.sh](https://ntfy.sh)

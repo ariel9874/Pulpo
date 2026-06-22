@@ -6,13 +6,13 @@ export default defineConfig({
     alias: {
       // Resolver los paquetes del workspace a su fuente: los tests corren contra
       // el código actual sin necesidad de compilar antes.
-      "@batuta/protocol": fileURLToPath(
+      "@pulpo/protocol": fileURLToPath(
         new URL("./packages/protocol/src/index.ts", import.meta.url),
       ),
-      "@batuta/backend-supabase": fileURLToPath(
+      "@pulpo/backend-supabase": fileURLToPath(
         new URL("./packages/backend-supabase/src/index.ts", import.meta.url),
       ),
-      "@batuta/backend-memory": fileURLToPath(
+      "@pulpo/backend-memory": fileURLToPath(
         new URL("./packages/backend-memory/src/index.ts", import.meta.url),
       ),
     },

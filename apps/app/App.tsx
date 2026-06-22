@@ -1,4 +1,4 @@
-import type { Session } from "@batuta/protocol";
+import type { Session } from "@pulpo/protocol";
 import type { Session as AuthSession } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -77,7 +77,7 @@ function Login() {
 
   return (
     <View style={styles.center}>
-      <Text style={styles.title}>Batuta</Text>
+      <Text style={styles.title}>Pulpo</Text>
       {!isSupabaseConfigured && (
         <Text style={styles.warn}>
           Configura EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_ANON_KEY.

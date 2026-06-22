@@ -1,4 +1,4 @@
-import { generateBoxKeyPair } from "@batuta/protocol";
+import { generateBoxKeyPair } from "@pulpo/protocol";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 export interface PairingStart {

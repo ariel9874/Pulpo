@@ -1,4 +1,4 @@
-import type { Event } from "@batuta/protocol";
+import type { Event } from "@pulpo/protocol";
 
 /** Añade un evento a la lista, ignorando duplicados por id (orden de llegada). */
 export function appendEvents(events: Event[], incoming: Event): Event[] {

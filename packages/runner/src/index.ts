@@ -1,5 +1,5 @@
 /**
- * @batuta/runner — el demonio local que lanza los agentes y traduce su
+ * @pulpo/runner — el demonio local que lanza los agentes y traduce su
  * actividad al protocolo.
  *
  * Etapas 7-9: emparejamiento, heartbeat y cableado de agentes (contrato

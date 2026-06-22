@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { generateSigningKeyPair } from "@batuta/protocol";
+import { generateSigningKeyPair } from "@pulpo/protocol";
 
-const STORAGE_KEY = "batuta.signingKey";
+const STORAGE_KEY = "pulpo.signingKey";
 
 interface SigningKeyPair {
   publicKey: string;

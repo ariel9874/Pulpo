@@ -6,17 +6,17 @@ import { dirname, join } from "node:path";
 /** Plataformas en las que sabemos instalar el runner como servicio. */
 export type ServicePlatform = "linux" | "darwin" | "win32";
 
-export const SERVICE_NAME = "batuta-runner";
-export const SERVICE_LABEL = "dev.batuta.runner";
+export const SERVICE_NAME = "pulpo-runner";
+export const SERVICE_LABEL = "dev.pulpo.runner";
 
 export interface ServiceContext {
   /** Ejecutable de Node (normalmente `process.execPath`). */
   nodePath: string;
   /** Ruta absoluta al `cli.js` del runner. */
   scriptPath: string;
-  /** Directorio de trabajo del servicio (BATUTA_HOME o ~/.batuta). */
+  /** Directorio de trabajo del servicio (PULPO_HOME o ~/.pulpo). */
   workingDir: string;
-  /** Variables de entorno a inyectar (p. ej. BATUTA_HOME si está personalizado). */
+  /** Variables de entorno a inyectar (p. ej. PULPO_HOME si está personalizado). */
   env?: Record<string, string>;
 }
 
@@ -34,7 +34,7 @@ export function systemdUnit(ctx: ServiceContext): string {
   const envLines = Object.entries(ctx.env ?? {}).map(([k, v]) => `Environment=${k}=${v}`);
   return [
     "[Unit]",
-    "Description=Batuta runner (orquesta agentes de IA en esta PC)",
+    "Description=Pulpo runner (orquesta agentes de IA en esta PC)",
     "After=network-online.target",
     "Wants=network-online.target",
     "",

@@ -1,4 +1,4 @@
--- Batuta · e2e mutuo de diffs (3/3) — intercambio bidireccional de claves de cifrado
+-- Pulpo · e2e mutuo de diffs (3/3) — intercambio bidireccional de claves de cifrado
 --
 -- Para AUTENTICAR el emisor del diff, la app debe conocer la clave pública de
 -- cifrado del runner, anclada en el emparejamiento (presencia física). El runner

@@ -1,5 +1,5 @@
 {
-  "name": "@batuta/backend-supabase",
+  "name": "@pulpo/backend-supabase",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -16,7 +16,7 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
-    "@batuta/protocol": "workspace:*",
+    "@pulpo/protocol": "workspace:*",
     "@supabase/supabase-js": "^2.48.1"
   }
 }

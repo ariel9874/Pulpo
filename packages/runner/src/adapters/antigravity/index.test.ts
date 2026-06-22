@@ -1,5 +1,5 @@
-import { MemoryBackend } from "@batuta/backend-memory";
-import type { Session } from "@batuta/protocol";
+import { MemoryBackend } from "@pulpo/backend-memory";
+import type { Session } from "@pulpo/protocol";
 import { describe, expect, it } from "vitest";
 import type { AgentEvent } from "../../agent-adapter.js";
 import { AgentRunner } from "../../agent-runner.js";
