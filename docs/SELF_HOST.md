@@ -24,8 +24,8 @@ pulpo-runner service uninstall
 
 Qué hace `service install` según el sistema:
 
-| SO          | Mecanismo                                                | Dónde queda                                      |
-| ----------- | -------------------------------------------------------- | ------------------------------------------------ |
+| SO          | Mecanismo                                                | Dónde queda                                     |
+| ----------- | -------------------------------------------------------- | ----------------------------------------------- |
 | **Linux**   | unit de **systemd** (modo usuario), `Restart=on-failure` | `~/.config/systemd/user/pulpo-runner.service`   |
 | **macOS**   | **LaunchAgent** de launchd, `RunAtLoad` + `KeepAlive`    | `~/Library/LaunchAgents/dev.pulpo.runner.plist` |
 | **Windows** | **Tarea programada** (`schtasks`) al iniciar sesión      | Programador de tareas, tarea `pulpo-runner`     |

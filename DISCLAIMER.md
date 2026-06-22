@@ -29,7 +29,7 @@ cómputo), aunque se haya advertido de su posibilidad.
 
 ⚠️ **Lee esto con atención.** Pulpo orquesta **agentes de IA** que pueden
 **ejecutar comandos, correr código, leer, crear, modificar y borrar archivos** en
-la PC donde corre el *runner*. Esas acciones pueden ser **destructivas o
+la PC donde corre el _runner_. Esas acciones pueden ser **destructivas o
 irreversibles**. En particular:
 
 - Algunos agentes ofrecen modos de **auto-aprobación** (p. ej. saltarse el
@@ -64,10 +64,10 @@ propias credenciales/claves** y eres responsable de:
 
 Pulpo es un proyecto **independiente**. **No está afiliado, patrocinado ni
 respaldado** por Anthropic, Google, OpenAI, SST (opencode), Supabase, ni por
-ningún otro tercero. Los nombres y marcas (p. ej. *Claude*, *Claude Code*,
-*Antigravity*, *Gemini*, *opencode*, *Supabase*) son **propiedad de sus
+ningún otro tercero. Los nombres y marcas (p. ej. _Claude_, _Claude Code_,
+_Antigravity_, _Gemini_, _opencode_, _Supabase_) son **propiedad de sus
 respectivos dueños** y se usan **solo de forma nominativa** para indicar
-compatibilidad o interoperabilidad, conforme al *nominative fair use*. Su mención
+compatibilidad o interoperabilidad, conforme al _nominative fair use_. Su mención
 **no implica** ningún tipo de respaldo o relación.
 
 ## 7. Uso aceptable

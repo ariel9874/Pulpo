@@ -157,13 +157,16 @@ describe("OpencodeAdapter (transporte simulado)", () => {
 
 describe("OpencodeAdapter.capabilities", () => {
   it("refleja el descubrimiento y marca permisos/effort/uso soportados", async () => {
-    const adapter = new OpencodeAdapter(() => new StreamingTransport(), async () => ({
-      available: true,
-      models: [
-        { id: "opencode/claude-opus-4-8", label: "opencode/claude-opus-4-8" },
-        { id: "opencode/deepseek-v4-flash-free", label: "opencode/deepseek-v4-flash-free" },
-      ],
-    }));
+    const adapter = new OpencodeAdapter(
+      () => new StreamingTransport(),
+      async () => ({
+        available: true,
+        models: [
+          { id: "opencode/claude-opus-4-8", label: "opencode/claude-opus-4-8" },
+          { id: "opencode/deepseek-v4-flash-free", label: "opencode/deepseek-v4-flash-free" },
+        ],
+      }),
+    );
     const cap = await adapter.capabilities();
     expect(cap).toMatchObject({
       agentType: "opencode",
@@ -176,7 +179,10 @@ describe("OpencodeAdapter.capabilities", () => {
   });
 
   it("si opencode no está disponible, available=false y sin modelos", async () => {
-    const cap = await new OpencodeAdapter(() => new StreamingTransport(), noDiscover).capabilities();
+    const cap = await new OpencodeAdapter(
+      () => new StreamingTransport(),
+      noDiscover,
+    ).capabilities();
     expect(cap.available).toBe(false);
     expect(cap.models).toEqual([]);
   });

@@ -88,8 +88,7 @@ export function NewTaskModal({
   const cap = agents.find((a) => a.agentType === agentType) ?? agents[0];
   const selectedModel = cap?.models.find((m) => m.id === model)?.id ?? cap?.models[0]?.id ?? null;
 
-  const canLaunch =
-    Boolean(selectedMachine) && Boolean(cap) && prompt.trim().length > 0 && !busy;
+  const canLaunch = Boolean(selectedMachine) && Boolean(cap) && prompt.trim().length > 0 && !busy;
 
   const toggleDictation = (): void => {
     if (listening) {
@@ -190,7 +189,9 @@ export function NewTaskModal({
                           onPress={() => setModel(m.id)}
                           style={[styles.chip, selectedModel === m.id && styles.chipOn]}
                         >
-                          <Text style={selectedModel === m.id ? styles.chipOnText : styles.chipText}>
+                          <Text
+                            style={selectedModel === m.id ? styles.chipOnText : styles.chipText}
+                          >
                             {m.label}
                           </Text>
                         </Pressable>

@@ -1,10 +1,4 @@
-import type {
-  AgentCapability,
-  AgentType,
-  DistributiveOmit,
-  Event,
-  Session,
-} from "@pulpo/protocol";
+import type { AgentCapability, AgentType, DistributiveOmit, Event, Session } from "@pulpo/protocol";
 
 /**
  * Un evento tal cual lo emite un adaptador: sin el envelope que pone el runner

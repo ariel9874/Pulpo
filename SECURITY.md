@@ -5,6 +5,24 @@ Eso lo hace potente y peligroso a la vez: la superficie a proteger no es solo la
 privacidad de tus datos, sino la **integridad del control remoto**. Este documento
 describe el modelo de amenazas y el estado de cada mitigación.
 
+## Reportar una vulnerabilidad
+
+**No abras un issue público para fallos de seguridad.** Repórtalos en privado:
+
+1. **Preferido:** GitHub → pestaña **Security** → **Report a vulnerability**
+   (Private Vulnerability Reporting). Permite coordinar el arreglo sin exponer el
+   fallo.
+2. **Alternativa:** correo a **ariel98745@gmail.com** con el asunto
+   `[SECURITY] Pulpo`. _(Ajusta este contacto a tu gusto.)_
+
+Incluye: versión/commit, pasos para reproducir, impacto y, si puedes, una prueba
+de concepto. Intentaremos confirmar la recepción en **≤72 h** y acordar una
+divulgación coordinada.
+
+> Pulpo es un proyecto open source **sin garantías** (ver [DISCLAIMER.md](DISCLAIMER.md));
+> no hay un programa de recompensas, pero agradecemos y damos crédito a quien
+> reporte de forma responsable.
+
 ## Arquitectura de confianza (resumen)
 
 - **App** (móvil/web): se autentica contra Supabase Auth. Su JWT da acceso a
@@ -17,15 +35,15 @@ describe el modelo de amenazas y el estado de cada mitigación.
 
 ## Modelo de amenazas
 
-| Amenaza                                                                            | Mitigación                                                                                                                                       | Estado        |
-| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------- |
-| Un usuario lee/escribe datos de **otro usuario**                                   | RLS `user_id = auth.uid()` en las 6 tablas + `with check` de propiedad del padre; Storage por carpeta `=<uid>`                                   | ✅            |
-| Acceso directo a la tabla de **pairing**                                           | RLS habilitada **sin políticas**; solo funciones `security definer` (owner `postgres`) la tocan                                                  | ✅            |
-| **Código de pairing** robado/forzado                                               | Código de un solo uso, expira en 10 min, `device_secret` de 24 bytes exigido en el `poll`                                                        | ✅            |
-| **Token del runner** robado del disco de una PC                                    | **Mínimo privilegio**: RLS acota el token por `pulpo_machine_id` → solo su máquina; no ve otras máquinas, sesiones, comandos ni tokens de push; Storage `artifacts` también acotado por máquina  | ✅ (Etapa 21) |
-| **Cuenta de la app** comprometida → inyectan comandos que ejecutan código en tu PC | **Firma de comandos** (Ed25519): la app firma; el runner verifica con la pública que recibió al emparejar; la privada nunca sale del dispositivo | ✅            |
-| El **BaaS gestionado** lee o **sustituye** tus diffs                               | **Cifrado e2e autenticado** (X25519 `nacl.box`): runner y app intercambian públicas al emparejar; el backend no puede leer ni falsificar el diff | ✅            |
-| Token del runner válido **demasiado tiempo** (365 días)                            | Rotación/refresh del token del runner                                                                                                            | ⏳ diferido   |
+| Amenaza                                                                            | Mitigación                                                                                                                                                                                      | Estado        |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| Un usuario lee/escribe datos de **otro usuario**                                   | RLS `user_id = auth.uid()` en las 6 tablas + `with check` de propiedad del padre; Storage por carpeta `=<uid>`                                                                                  | ✅            |
+| Acceso directo a la tabla de **pairing**                                           | RLS habilitada **sin políticas**; solo funciones `security definer` (owner `postgres`) la tocan                                                                                                 | ✅            |
+| **Código de pairing** robado/forzado                                               | Código de un solo uso, expira en 10 min, `device_secret` de 24 bytes exigido en el `poll`                                                                                                       | ✅            |
+| **Token del runner** robado del disco de una PC                                    | **Mínimo privilegio**: RLS acota el token por `pulpo_machine_id` → solo su máquina; no ve otras máquinas, sesiones, comandos ni tokens de push; Storage `artifacts` también acotado por máquina | ✅ (Etapa 21) |
+| **Cuenta de la app** comprometida → inyectan comandos que ejecutan código en tu PC | **Firma de comandos** (Ed25519): la app firma; el runner verifica con la pública que recibió al emparejar; la privada nunca sale del dispositivo                                                | ✅            |
+| El **BaaS gestionado** lee o **sustituye** tus diffs                               | **Cifrado e2e autenticado** (X25519 `nacl.box`): runner y app intercambian públicas al emparejar; el backend no puede leer ni falsificar el diff                                                | ✅            |
+| Token del runner válido **demasiado tiempo** (365 días)                            | Rotación/refresh del token del runner                                                                                                                                                           | ⏳ diferido   |
 
 ## Checklist de seguridad
 

@@ -11,7 +11,7 @@ encendida— hace el trabajo. El móvil **no es el IDE**; es el mando.
 
 ## ✨ Qué hace
 
-- **Lanza tareas a agentes de IA** desde el móvil o el navegador; el *runner* en tu
+- **Lanza tareas a agentes de IA** desde el móvil o el navegador; el _runner_ en tu
   PC las ejecuta en el directorio que elijas.
 - **Agnóstica de agente:** un solo control remoto para varios agentes/empresas. Cada
   máquina **publica sus capacidades** (qué agentes hay, qué modelos, qué soporta) y
@@ -28,12 +28,12 @@ encendida— hace el trabajo. El móvil **no es el IDE**; es el mando.
 
 ## 🤖 Agentes soportados
 
-| Agente | Estado | Notas |
-| --- | --- | --- |
-| **Claude Code** (Claude Agent SDK) | ✅ | Modelo y *effort* por tarea, permisos, uso/tokens |
-| **opencode** | ✅ | Catálogo multi-proveedor (vía su servidor); gating de permisos |
-| **Antigravity** (`agy`) | ⏸️ No disponible | Su CLI no es automatizable *headless* todavía; cableado listo para reactivar |
-| **echo** | 🧪 | Agente de prueba, sin IA |
+| Agente                             | Estado           | Notas                                                                        |
+| ---------------------------------- | ---------------- | ---------------------------------------------------------------------------- |
+| **Claude Code** (Claude Agent SDK) | ✅               | Modelo y _effort_ por tarea, permisos, uso/tokens                            |
+| **opencode**                       | ✅               | Catálogo multi-proveedor (vía su servidor); gating de permisos               |
+| **Antigravity** (`agy`)            | ⏸️ No disponible | Su CLI no es automatizable _headless_ todavía; cableado listo para reactivar |
+| **echo**                           | 🧪               | Agente de prueba, sin IA                                                     |
 
 Añadir un agente nuevo es **un adaptador + una fila de capacidades**.
 

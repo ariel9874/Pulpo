@@ -43,8 +43,12 @@ describe("mapOpencodeEvent", () => {
   });
 
   it("partes irrelevantes (step-start, file…) → null", () => {
-    expect(mapOpencodeEvent(partEvent({ type: "step-start", id: "p", sessionID: "s", messageID: "m" }))).toBeNull();
-    expect(mapOpencodeEvent(partEvent({ type: "file", id: "p", sessionID: "s", messageID: "m" }))).toBeNull();
+    expect(
+      mapOpencodeEvent(partEvent({ type: "step-start", id: "p", sessionID: "s", messageID: "m" })),
+    ).toBeNull();
+    expect(
+      mapOpencodeEvent(partEvent({ type: "file", id: "p", sessionID: "s", messageID: "m" })),
+    ).toBeNull();
   });
 
   it("session.idle → result completed", () => {
@@ -73,7 +77,10 @@ describe("mapOpencodeEvent", () => {
 
 describe("messageError", () => {
   it("extrae el mensaje del error del asistente (p. ej. API key inválida)", () => {
-    const info = { role: "assistant", error: { name: "ProviderAuthError", data: { message: "Invalid API key" } } };
+    const info = {
+      role: "assistant",
+      error: { name: "ProviderAuthError", data: { message: "Invalid API key" } },
+    };
     expect(messageError(info)).toBe("Invalid API key");
   });
 

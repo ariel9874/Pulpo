@@ -5,22 +5,22 @@
 > abogado según tu jurisdicción (GDPR, CCPA, etc.).
 
 Pulpo es **open source y self-host**: tú decides dónde corre el backend (tu
-instancia de Supabase) y el *runner* (tu PC). **Quien hospeda Pulpo es el
+instancia de Supabase) y el _runner_ (tu PC). **Quien hospeda Pulpo es el
 responsable del tratamiento de los datos.** Los autores del proyecto **no operan
 un servicio central** ni reciben tus datos.
 
 ## 1. Qué datos se manejan
 
-| Dato | Dónde vive | Para qué |
-| --- | --- | --- |
-| **Email / cuenta** | Tu Supabase (Auth) | Iniciar sesión e identificar al usuario |
-| **Sesiones y mensajes del chat** (`sessions`, `events`) | Tu Supabase | Mostrar el hilo del agente |
-| **Comandos** (`commands`) | Tu Supabase | Órdenes de la app al runner |
-| **Permisos y diffs** (`permissions`) | Tu Supabase | Aprobar/rechazar acciones; los **diffs van cifrados** |
-| **Artifacts** (archivos generados) | Tu Supabase Storage | Previsualizar/descargar; acotados por usuario y máquina |
-| **Máquinas y capacidades** (`machines`) | Tu Supabase | Saber qué runner/agentes hay |
-| **Tokens de push** (`device_tokens`) | Tu Supabase | Enviar notificaciones |
-| **Clave de firma / cifrado del dispositivo** | **Solo en tu dispositivo** | Firmar comandos y descifrar diffs; **nunca sale del dispositivo** |
+| Dato                                                    | Dónde vive                 | Para qué                                                          |
+| ------------------------------------------------------- | -------------------------- | ----------------------------------------------------------------- |
+| **Email / cuenta**                                      | Tu Supabase (Auth)         | Iniciar sesión e identificar al usuario                           |
+| **Sesiones y mensajes del chat** (`sessions`, `events`) | Tu Supabase                | Mostrar el hilo del agente                                        |
+| **Comandos** (`commands`)                               | Tu Supabase                | Órdenes de la app al runner                                       |
+| **Permisos y diffs** (`permissions`)                    | Tu Supabase                | Aprobar/rechazar acciones; los **diffs van cifrados**             |
+| **Artifacts** (archivos generados)                      | Tu Supabase Storage        | Previsualizar/descargar; acotados por usuario y máquina           |
+| **Máquinas y capacidades** (`machines`)                 | Tu Supabase                | Saber qué runner/agentes hay                                      |
+| **Tokens de push** (`device_tokens`)                    | Tu Supabase                | Enviar notificaciones                                             |
+| **Clave de firma / cifrado del dispositivo**            | **Solo en tu dispositivo** | Firmar comandos y descifrar diffs; **nunca sale del dispositivo** |
 
 ## 2. Qué sale de tu equipo (importante)
 
@@ -32,7 +32,7 @@ un servicio central** ni reciben tus datos.
   (NaCl box) hacia la clave pública de tu app; **el backend no puede leerlos**
   (ver [SECURITY.md](SECURITY.md)).
 - **Notificaciones push:** en el modo por defecto (dev) se publica a
-  [ntfy.sh](https://ntfy.sh) en un *topic* derivado de tu `user_id`, con el
+  [ntfy.sh](https://ntfy.sh) en un _topic_ derivado de tu `user_id`, con el
   **título y mensaje** de la notificación (no el contenido del chat). Cámbialo a
   FCM/APNs propio para producción.
 

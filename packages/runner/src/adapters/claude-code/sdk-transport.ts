@@ -180,7 +180,9 @@ function formatPlan(u: SdkUsageResponse): string | undefined {
   if (!u.rate_limits_available || !u.rate_limits) return undefined;
   const w = u.rate_limits;
   const free = (win: SdkRateWindow | null | undefined): number | undefined =>
-    typeof win?.utilization === "number" ? Math.max(0, Math.round(100 - win.utilization)) : undefined;
+    typeof win?.utilization === "number"
+      ? Math.max(0, Math.round(100 - win.utilization))
+      : undefined;
   const parts: string[] = [];
   const h5 = free(w.five_hour);
   const d7 = free(w.seven_day);
@@ -198,10 +200,13 @@ function formatUsage(m: SdkMessage): string | undefined {
   if (first) {
     const [modelId, u] = first;
     parts.push(modelId);
-    parts.push(`${formatTokens(u.inputTokens ?? 0)} ent · ${formatTokens(u.outputTokens ?? 0)} sal`);
+    parts.push(
+      `${formatTokens(u.inputTokens ?? 0)} ent · ${formatTokens(u.outputTokens ?? 0)} sal`,
+    );
   }
   if (typeof m.total_cost_usd === "number") parts.push(`$${m.total_cost_usd.toFixed(4)}`);
-  if (typeof m.num_turns === "number") parts.push(`${m.num_turns} turno${m.num_turns === 1 ? "" : "s"}`);
+  if (typeof m.num_turns === "number")
+    parts.push(`${m.num_turns} turno${m.num_turns === 1 ? "" : "s"}`);
   return parts.length > 0 ? parts.join(" · ") : undefined;
 }
 

@@ -25,132 +25,153 @@ contrato real es **un solo archivo**.
 ## Fase 0 — Reconocimiento y enum
 
 ### Paso 0.5 — Reconocimiento del contrato (de-riesgar antes de codificar)
+
 Leer los tipos de `@opencode-ai/sdk` y extraer del OpenAPI (`GET /doc`) los esquemas de
 `Event` / `Part` / `permission` / el body del prompt. Anotar el shape exacto de cada
 evento a mapear. **No se asume: se lee y se fija.**
-*Verif:* documento de contrato con los shapes reales. Sin test (es lectura).
+_Verif:_ documento de contrato con los shapes reales. Sin test (es lectura).
 
 ### Paso 1 — Instalar el SDK
+
 `@opencode-ai/sdk` en `packages/runner`; confirmar que la versión casa con el CLI 1.17.9.
-*Verif:* `pnpm install` + los tipos resuelven.
+_Verif:_ `pnpm install` + los tipos resuelven.
 
 ### Paso 2 — `opencode` en el enum
+
 Añadir `"opencode"` a `agentTypeSchema` (`packages/protocol/src/common.ts`).
-*Test:* parse de `agentType:"opencode"` en session/capabilities.
-*Verif:* `pnpm build` + `pnpm test`. 💾
+_Test:_ parse de `agentType:"opencode"` en session/capabilities.
+_Verif:_ `pnpm build` + `pnpm test`. 💾
 
 ---
 
 ## Fase 1 — Transporte + mapeo puro (sin servidor)
 
 ### Paso 3 — `opencode/transport.ts`
+
 `OpencodeMessage` (`text`/`thinking`/`tool_use`/`result`/`error`), `OpencodeRunOptions`
 (input, cwd, signal, requestPermission, model?, effort?), interfaz `OpencodeTransport`.
-*Verif:* `pnpm build`.
+_Verif:_ `pnpm build`.
 
 ### Paso 4 — `opencode/index.ts` (adaptador esqueleto)
+
 `toEvent()` + `OpencodeAdapter` con factory de transporte inyectable, `start`/`pump`,
 `OpencodeSession` (sendMessage/cancel/dispose). Calca a antigravity.
-*Verif:* `pnpm build`.
+_Verif:_ `pnpm build`.
 
 ### Paso 5 — Test: mapeo de actividad
+
 Transporte simulado emite `thinking`,`text`,`tool_use`,`result` → asserts
 `["thought","message","tool_call","task_done"]`.
-*Verif:* `pnpm test`.
+_Verif:_ `pnpm test`.
 
 ### Paso 6 — Test: enchufe al AgentRunner (MemoryBackend)
+
 `new_task` con transporte simulado → evento `message` persistido.
-*Verif:* `pnpm test`.
+_Verif:_ `pnpm test`.
 
 ### Paso 7 — Test: `send_message` y `cancel`
+
 Nuevo turno hace eco; `cancel` deja la sesión `cancelled`.
-*Verif:* `pnpm test`. 💾
+_Verif:_ `pnpm test`. 💾
 
 ---
 
 ## Fase 2 — capabilities()
 
 ### Paso 8 — `capabilities()` con discovery inyectable
+
 `available` + `models` desde discovery; `supportsEffort:true`,
 `supportsPermissions:true`, `supportsUsage:true`.
-*Verif:* `pnpm build`.
+_Verif:_ `pnpm build`.
 
 ### Paso 9 — Test: capabilities()
+
 Con discovery stub (`available:true`, 2 modelos) → asserts shape, incluido
 `supportsPermissions:true`. Y caso `available:false`.
-*Verif:* `pnpm test`. 💾
+_Verif:_ `pnpm test`. 💾
 
 ---
 
 ## Fase 3 — Servidor + descubrimiento (aislado)
 
 ### Paso 10 — `opencode/server.ts` (lifecycle)
+
 Manager que levanta `opencode serve --port 0 --hostname 127.0.0.1` lazy, parsea la URL de
 `listening on …`, expone `baseUrl()`, `dispose()`. **Spawn inyectable** para test.
 Siempre localhost; nunca `0.0.0.0`.
-*Verif:* `pnpm build`.
+_Verif:_ `pnpm build`.
 
 ### Paso 11 — Test: parseo de URL + dispose
+
 Con spawn falso (stdout simulado) → extrae la URL; `dispose` mata el proceso.
-*Verif:* `pnpm test`.
+_Verif:_ `pnpm test`.
 
 ### Paso 12 — `opencode/discover.ts`
+
 `discoverOpencode()`: `opencode --version` (available) + `opencode models` (catálogo
 `provider/model`). Timeouts defensivos, nunca lanza.
-*Verif:* `pnpm build`.
+_Verif:_ `pnpm build`.
 
 ### Paso 13 — Test: parser de `opencode models`
+
 Función pura `parseModels(text)` → `AgentModel[]` (ignora ruido). Test con muestra real
 (las 45 líneas `provider/model`).
-*Verif:* `pnpm test`. 💾
+_Verif:_ `pnpm test`. 💾
 
 ---
 
 ## Fase 4 — Transporte SDK real + mapeo de eventos
 
 ### Paso 14 — `mapOpencodeEvent()` (función pura, exportada)
+
 Mapea un `Event` del SDK → `OpencodeMessage | null` (part texto/razonamiento/tool,
 `session.idle`→result, error).
-*Verif:* `pnpm build`.
+_Verif:_ `pnpm build`.
 
 ### Paso 15 — Test: `mapOpencodeEvent` (el lock del esquema)
+
 Tests con payloads de muestra (de los tipos del SDK / del Paso 0.5): cada variante de
 evento → el `OpencodeMessage` esperado; eventos irrelevantes → `null`.
-*Verif:* `pnpm test`. 💾
+_Verif:_ `pnpm test`. 💾
 
 ### Paso 16 — `opencode/sdk-transport.ts` (integración real)
+
 Usa `@opencode-ai/sdk` contra `server.baseUrl()`: crea sesión, manda prompt, suscribe
 `/event`, aplica `mapOpencodeEvent`, hace round-trip de permisos
 (`permission.updated`→`requestPermission`→reply), `abort` en señal, pasa `model` y
 `effort` (`--variant`). **Sin unit test** (frontera real, como claude).
-*Verif:* `pnpm build`.
+_Verif:_ `pnpm build`.
 
 ### Paso 17 — Cablear defaults
+
 Factory por defecto → `SdkOpencodeTransport`; discovery por defecto → `discoverOpencode`.
-*Verif:* `pnpm build` + `pnpm test` completo. 💾
+_Verif:_ `pnpm build` + `pnpm test` completo. 💾
 
 ---
 
 ## Fase 5 — Runner + app
 
 ### Paso 18 — Registrar en el runner
+
 `new OpencodeAdapter()` en `packages/runner/src/cli.ts`.
-*Verif:* `pnpm build`.
+_Verif:_ `pnpm build`.
 
 ### Paso 19 — App (capability-driven, ya casi listo)
+
 Añadir `opencode` a `FALLBACK_AGENTS` en `apps/app/src/screens/NewTaskModal.tsx` (para el
 rollout); la UI ya lo mostrará por capacidades publicadas.
-*Verif:* typecheck app + `eslint` + bundle Metro. 💾
+_Verif:_ typecheck app + `eslint` + bundle Metro. 💾
 
 ---
 
 ## Fase 6 — Verificación viva (manual, necesita el stack)
 
 ### Paso 20 — E2E real con OpenCode Zen
+
 Con Docker+Supabase y el runner arriba: lanzar un `new_task` opencode (modelo free) desde
 la app, confirmar que los eventos llegan al hilo y que el catálogo de modelos aparece.
 Ajustar `mapOpencodeEvent` si la captura real difiere.
-*Verif final:* `pnpm build` · todos los unit tests · `eslint` · bundle · round-trip
+_Verif final:_ `pnpm build` · todos los unit tests · `eslint` · bundle · round-trip
 Supabase. 💾 commit final.
 
 ---
@@ -191,9 +212,9 @@ opencode (hay `--pure`) y qué **retiene OpenCode Zen**.
 
 ## Evaluación de riesgo (honesta)
 
-| Parte | Confianza | Por qué |
-|---|---|---|
-| Fases 0–3 + tests con transporte falso | ~90-95% | Patrón ya repetido 3 veces; `opencode models` y `serve` ya verificados en vivo |
+| Parte                                    | Confianza                          | Por qué                                                                                              |
+| ---------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Fases 0–3 + tests con transporte falso   | ~90-95%                            | Patrón ya repetido 3 veces; `opencode models` y `serve` ya verificados en vivo                       |
 | Pasos 14–16, 20 (SDK real + mapeo + E2E) | ~60-70% → ~85-90% tras el Paso 0.5 | Aún no observé el stream de eventos real; está **documentado** (OpenAPI + SDK) pero no leído/probado |
 
 El riesgo está **contenido**: el transporte real está aislado en `sdk-transport.ts`, y
