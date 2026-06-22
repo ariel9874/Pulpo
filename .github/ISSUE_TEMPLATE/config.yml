@@ -1,9 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: 🔒 Vulnerabilidad de seguridad
-    # Edita OWNER/REPO al crear el repo, o usa la pestaña Security → Report a vulnerability.
-    url: https://github.com/OWNER/REPO/security/advisories/new
+    url: https://github.com/ariel9874/Pulpo/security/advisories/new
     about: No abras un issue público para fallos de seguridad. Repórtalo en privado (ver SECURITY.md).
   - name: 💬 Preguntas y discusión
-    url: https://github.com/OWNER/REPO/discussions
+    url: https://github.com/ariel9874/Pulpo/discussions
     about: Para preguntas de uso, ideas abiertas o dudas, usa Discussions.

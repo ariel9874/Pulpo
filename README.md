@@ -1,8 +1,6 @@
 # Pulpo 🐙
 
-<!-- Ajusta "getpulpo/pulpo" a tu organización/repositorio reales. -->
-
-[![CI](https://github.com/getpulpo/pulpo/actions/workflows/ci.yml/badge.svg)](https://github.com/getpulpo/pulpo/actions/workflows/ci.yml)
+[![CI](https://github.com/ariel9874/Pulpo/actions/workflows/ci.yml/badge.svg)](https://github.com/ariel9874/Pulpo/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 ![Status: alpha](https://img.shields.io/badge/status-alpha-orange.svg)
@@ -14,7 +12,7 @@ de los agentes de IA que corren en tu computadora. Como un pulpo que mueve vario
 brazos a la vez: coordinas varios agentes desde donde estés, y tu PC —siempre
 encendida— hace el trabajo. El móvil **no es el IDE**; es el mando.
 
-> Estado: en construcción. Plan por etapas en [PLAN.md](PLAN.md).
+> Estado: **alpha**, en construcción. Los cambios se registran en [CHANGELOG.md](CHANGELOG.md).
 
 ## ✨ Qué hace
 
@@ -30,8 +28,9 @@ encendida— hace el trabajo. El móvil **no es el IDE**; es el mando.
 - **Selección de modelo y razonamiento** por tarea.
 - **Seguro por diseño:** firma de comandos (Ed25519), cifrado extremo a extremo de
   los diffs, RLS por usuario y mínimo privilegio del runner — ver [SECURITY.md](SECURITY.md).
-- **Self-host:** tu backend (Supabase) y tu runner; tú controlas los datos — ver
-  [docs/SELF_HOST.md](docs/SELF_HOST.md).
+- **Self-hostable:** trae tu propio backend — **Supabase cloud (tu proyecto) o
+  Supabase self-hosted** — y tu runner corre en tu PC; tú controlas tus datos. Los
+  diffs van cifrados e2e (el backend no los lee). Ver [docs/SELF_HOST.md](docs/SELF_HOST.md).
 
 ## 🤖 Agentes soportados
 

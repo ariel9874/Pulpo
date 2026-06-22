@@ -2,7 +2,7 @@
   "name": "pulpo",
   "version": "0.0.0",
   "private": true,
-  "description": "Orquesta tus agentes de IA desde el móvil y la web mientras tu PC los ejecuta.",
+  "description": "Open-source remote for AI coding agents — your phone drives, your PC runs them. Bring your own Supabase (cloud or self-hosted).",
   "license": "MIT",
   "packageManager": "pnpm@9.15.9",
   "engines": {

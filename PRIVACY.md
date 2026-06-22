@@ -4,10 +4,13 @@
 > como se publica. Si lo operas para terceros, adapta y revisa esta política con un
 > abogado según tu jurisdicción (GDPR, CCPA, etc.).
 
-Pulpo es **open source y self-host**: tú decides dónde corre el backend (tu
-instancia de Supabase) y el _runner_ (tu PC). **Quien hospeda Pulpo es el
-responsable del tratamiento de los datos.** Los autores del proyecto **no operan
-un servicio central** ni reciben tus datos.
+Pulpo es **open source y self-hostable**: tú decides dónde vive el backend —tu
+**propio proyecto de Supabase (cloud o self-hosted)**— y el _runner_ corre en tu
+PC. **Quien opera el backend es el responsable del tratamiento de los datos.** Los
+autores del proyecto **no operan un servicio central** ni reciben tus datos. (Nota:
+con Supabase Cloud, los datos viven en la infraestructura gestionada de Supabase,
+bajo **tu** cuenta; para control total de la infraestructura, usa Supabase
+self-hosted.)
 
 ## 1. Qué datos se manejan
 

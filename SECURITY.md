@@ -82,8 +82,8 @@ Tests de integración (requieren Supabase local; se saltan sin entorno):
 - `packages/protocol/src/encryption.test.ts` + `packages/runner/src/agent-runner.test.ts`
   — cifrado/descifrado del diff (el ciphertext no filtra el texto; otra clave no abre).
 
-Cómo correrlos: ver [`memory/run-integration-tests.md`] (Supabase local + exportar el
-entorno de `supabase status` antes de `vitest`).
+Cómo correrlos: levanta Supabase local (`pnpm exec supabase start`) y exporta el
+entorno de `supabase status` antes de `vitest` (ver [docs/SELF_HOST.md](docs/SELF_HOST.md)).
 
 ## Firma de comandos: cómo y por qué
 

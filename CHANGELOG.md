@@ -46,4 +46,4 @@ API y el protocolo pueden cambiar.
 - **Antigravity** (`agy`) queda **marcado no disponible**: su CLI no es automatizable
   _headless_ todavía (el cableado queda listo para reactivarlo).
 
-[unreleased]: https://github.com/getpulpo/pulpo/commits/main
+[unreleased]: https://github.com/ariel9874/Pulpo/commits/main
