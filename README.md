@@ -1,4 +1,11 @@
-# Pulpo
+# Pulpo 🐙
+
+<!-- Ajusta "getpulpo/pulpo" a tu organización/repositorio reales. -->
+
+[![CI](https://github.com/getpulpo/pulpo/actions/workflows/ci.yml/badge.svg)](https://github.com/getpulpo/pulpo/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+![Status: alpha](https://img.shields.io/badge/status-alpha-orange.svg)
 
 **Orquesta tus agentes de IA desde el móvil y la web, mientras tu PC los ejecuta.**
 
