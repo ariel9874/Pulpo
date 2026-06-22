@@ -37,6 +37,15 @@ const FALLBACK_AGENTS: AgentCapability[] = [
     supportsUsage: false,
   },
   {
+    agentType: "opencode",
+    label: "opencode",
+    available: true,
+    models: [],
+    supportsEffort: false,
+    supportsPermissions: true,
+    supportsUsage: false,
+  },
+  {
     agentType: "echo",
     label: "Echo (prueba)",
     available: true,

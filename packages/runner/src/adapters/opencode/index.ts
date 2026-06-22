@@ -2,15 +2,17 @@ import type { AgentCapability } from "@batuta/protocol";
 import type { AgentAdapter, AgentEvent, AgentSession, StartParams } from "../../agent-adapter.js";
 import { MessageQueue } from "../../message-queue.js";
 import { discoverOpencode, type OpencodeDiscovery } from "./discover.js";
+import { SdkOpencodeTransport } from "./sdk-transport.js";
 import type { OpencodeMessage, OpencodeTransport } from "./transport.js";
 
 export * from "./transport.js";
 export { discoverOpencode, parseModels, type OpencodeDiscovery } from "./discover.js";
+export { SdkOpencodeTransport } from "./sdk-transport.js";
+export { disposeOpencodeServer } from "./server.js";
 
-/** Opciones por tarea para el transporte (modelo y razonamiento elegidos en la app). */
+/** Opciones por tarea para el transporte (el modelo elegido en la app). */
 export interface OpencodeTransportOptions {
   model?: string;
-  effort?: string;
 }
 export type OpencodeTransportFactory = (options: OpencodeTransportOptions) => OpencodeTransport;
 
@@ -40,7 +42,8 @@ export class OpencodeAdapter implements AgentAdapter {
   readonly agentType = "opencode" as const;
 
   constructor(
-    private readonly createTransport: OpencodeTransportFactory,
+    private readonly createTransport: OpencodeTransportFactory = (options) =>
+      new SdkOpencodeTransport(options),
     /** Descubrimiento de opencode (inyectable en tests para no lanzar el CLI real). */
     private readonly discover: () => Promise<OpencodeDiscovery> = () => discoverOpencode(),
   ) {}
@@ -52,10 +55,11 @@ export class OpencodeAdapter implements AgentAdapter {
       label: "opencode",
       available,
       models,
-      // opencode expone razonamiento (variant), gating de permisos real y uso/tokens.
-      supportsEffort: true,
+      // Gating de permisos real (lo cableamos vía permission.updated). El effort y
+      // el uso/tokens aún no se exponen por esta vía del API; se revisitan luego.
+      supportsEffort: false,
       supportsPermissions: true,
-      supportsUsage: true,
+      supportsUsage: false,
     };
   }
 
@@ -65,7 +69,6 @@ export class OpencodeAdapter implements AgentAdapter {
     input.push(params.prompt);
     const transport = this.createTransport({
       ...(params.session.model ? { model: params.session.model } : {}),
-      ...(params.session.effort ? { effort: params.session.effort } : {}),
     });
     void this.pump(transport, params, input, controller);
     return new OpencodeSession(input, controller);

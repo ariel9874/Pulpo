@@ -6,6 +6,7 @@ import { createSupabaseBackend } from "@batuta/backend-supabase";
 import { AntigravityAdapter } from "./adapters/antigravity/index.js";
 import { ClaudeCodeAdapter } from "./adapters/claude-code/index.js";
 import { EchoAdapter } from "./adapters/echo.js";
+import { OpencodeAdapter } from "./adapters/opencode/index.js";
 import { AgentRunner } from "./agent-runner.js";
 import { loadCredential, defaultCredentialPath } from "./credentials.js";
 import { RunnerDaemon } from "./daemon.js";
@@ -38,7 +39,7 @@ async function runDaemon(): Promise<void> {
   const agents = new AgentRunner(
     backend,
     credential.machineId,
-    [new EchoAdapter(), new ClaudeCodeAdapter(), new AntigravityAdapter()],
+    [new EchoAdapter(), new ClaudeCodeAdapter(), new AntigravityAdapter(), new OpencodeAdapter()],
     {
       ...(credential.signerPublicKey ? { signerPublicKey: credential.signerPublicKey } : {}),
       ...(credential.boxPublicKey ? { recipientBoxPublicKey: credential.boxPublicKey } : {}),

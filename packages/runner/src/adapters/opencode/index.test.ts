@@ -168,9 +168,9 @@ describe("OpencodeAdapter.capabilities", () => {
     expect(cap).toMatchObject({
       agentType: "opencode",
       available: true,
-      supportsEffort: true,
+      supportsEffort: false,
       supportsPermissions: true,
-      supportsUsage: true,
+      supportsUsage: false,
     });
     expect(cap.models).toHaveLength(2);
   });
