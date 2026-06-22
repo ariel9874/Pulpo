@@ -1,6 +1,6 @@
 import type { Event } from "@opencode-ai/sdk";
 import { describe, expect, it } from "vitest";
-import { mapOpencodeEvent } from "./event-mapper.js";
+import { mapOpencodeEvent, messageError } from "./event-mapper.js";
 
 /** Construye un `message.part.updated` con la parte dada (shape real del SDK). */
 function partEvent(part: Record<string, unknown>): Event {
@@ -68,5 +68,22 @@ describe("mapOpencodeEvent", () => {
   it("eventos no relevantes → null", () => {
     const ev = { type: "session.created", properties: {} } as unknown as Event;
     expect(mapOpencodeEvent(ev)).toBeNull();
+  });
+});
+
+describe("messageError", () => {
+  it("extrae el mensaje del error del asistente (p. ej. API key inválida)", () => {
+    const info = { role: "assistant", error: { name: "ProviderAuthError", data: { message: "Invalid API key" } } };
+    expect(messageError(info)).toBe("Invalid API key");
+  });
+
+  it("sin error → undefined (turno normal)", () => {
+    expect(messageError({ role: "assistant" })).toBeUndefined();
+    expect(messageError(undefined)).toBeUndefined();
+    expect(messageError(null)).toBeUndefined();
+  });
+
+  it("error sin data.message → cae al nombre", () => {
+    expect(messageError({ error: { name: "UnknownError" } })).toBe("UnknownError");
   });
 });

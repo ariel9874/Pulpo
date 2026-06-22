@@ -14,10 +14,20 @@ export function mapOpencodeEvent(event: Event): OpencodeMessage | null {
     case "session.idle":
       return { kind: "result", outcome: "completed" };
     case "session.error":
-      return { kind: "error", message: errorMessage(event.properties.error) };
+      return { kind: "error", message: errorText(event.properties.error) };
     default:
       return null;
   }
+}
+
+/**
+ * Mensaje de error de un mensaje del asistente, si lo trae (`AssistantMessage
+ * .error`). opencode devuelve el turno con `parts: []` y este `error` cuando algo
+ * falla sin lanzar (p. ej. API key inválida) — así NO se completa en silencio.
+ */
+export function messageError(info: { error?: unknown } | null | undefined): string | undefined {
+  const error = info?.error;
+  return error ? errorText(error) : undefined;
 }
 
 /** Traduce una parte de mensaje: texto→text, razonamiento→thinking, tool→tool_use. */
@@ -35,7 +45,7 @@ export function mapPart(part: Part): OpencodeMessage | null {
 }
 
 /** Extrae un mensaje legible del error de opencode (todas las variantes traen data.message). */
-function errorMessage(error: unknown): string {
+export function errorText(error: unknown): string {
   if (error && typeof error === "object") {
     const data = (error as { data?: { message?: unknown } }).data;
     if (data && typeof data.message === "string") return data.message;

@@ -1,6 +1,6 @@
 import type { Event } from "@opencode-ai/sdk";
 import type { PermissionDecision, RequestPermission } from "../../agent-adapter.js";
-import { mapPart } from "./event-mapper.js";
+import { mapPart, messageError } from "./event-mapper.js";
 import { opencodeClient } from "./server.js";
 import type { OpencodeMessage, OpencodeRunOptions, OpencodeTransport } from "./transport.js";
 
@@ -68,8 +68,13 @@ export class SdkOpencodeTransport implements OpencodeTransport {
           continue;
         }
         if (options.signal.aborted) break;
-        if (result.error) {
-          yield { kind: "error", message: errMsg(result.error) };
+        // Error de transporte (HTTP/red) o del propio turno del asistente
+        // (`info.error`, p. ej. API key inválida): opencode devuelve parts vacío
+        // y el error en el mensaje, así que lo surfaceamos en vez de completar mudo.
+        const turnError = result.error ? errMsg(result.error) : messageError(result.data?.info);
+        if (turnError) {
+          yield { kind: "error", message: turnError };
+          yield { kind: "result", outcome: "failed" };
           continue;
         }
         for (const part of result.data?.parts ?? []) {
