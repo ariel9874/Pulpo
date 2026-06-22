@@ -17,7 +17,7 @@ export const isoDateTimeSchema = z.string().datetime({ offset: true });
  * Tipo de agente. En la práctica es una lista abierta (cada adaptador añade el suyo),
  * pero validamos contra los conocidos para detectar typos pronto.
  */
-export const agentTypeSchema = z.enum(["echo", "claude-code", "antigravity", "codex"]);
+export const agentTypeSchema = z.enum(["echo", "claude-code", "antigravity", "codex", "opencode"]);
 export type AgentType = z.infer<typeof agentTypeSchema>;
 
 /**

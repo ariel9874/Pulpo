@@ -21,7 +21,8 @@
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.183",
     "@batuta/backend-supabase": "workspace:*",
-    "@batuta/protocol": "workspace:*"
+    "@batuta/protocol": "workspace:*",
+    "@opencode-ai/sdk": "^1.17.9"
   },
   "devDependencies": {
     "@batuta/backend-memory": "workspace:*",

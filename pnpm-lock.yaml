@@ -126,6 +126,9 @@ importers:
       '@batuta/protocol':
         specifier: workspace:*
         version: link:../protocol
+      '@opencode-ai/sdk':
+        specifier: ^1.17.9
+        version: 1.17.9
     devDependencies:
       '@batuta/backend-memory':
         specifier: workspace:*
@@ -1304,6 +1307,9 @@ packages:
   '@npmcli/fs@3.1.1':
     resolution: {integrity: sha512-q9CRWjpHCMIh5sVyefoD1cA7PkvILqCZsnSOEUUivORLjxCO/Irmue2DprETiNgEqktDBZaM1Bi+jrarx1XdCg==}
     engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0}
+
+  '@opencode-ai/sdk@1.17.9':
+    resolution: {integrity: sha512-MHmXEpGPHkg14v1p+cUlIOUxd6DQdSElfau9nqY7tcDI0x5r4Y8D0dKXcyAh0Gc73ptaGW67Vg84nkcV6O27Pw==}
 
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
@@ -6253,6 +6259,10 @@ snapshots:
   '@npmcli/fs@3.1.1':
     dependencies:
       semver: 7.8.4
+
+  '@opencode-ai/sdk@1.17.9':
+    dependencies:
+      cross-spawn: 7.0.6
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
