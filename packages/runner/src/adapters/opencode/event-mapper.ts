@@ -21,7 +21,7 @@ export function mapOpencodeEvent(event: Event): OpencodeMessage | null {
 }
 
 /** Traduce una parte de mensaje: texto→text, razonamiento→thinking, tool→tool_use. */
-function mapPart(part: Part): OpencodeMessage | null {
+export function mapPart(part: Part): OpencodeMessage | null {
   switch (part.type) {
     case "text":
       return part.text ? { kind: "text", text: part.text } : null;
